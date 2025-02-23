@@ -1,3 +1,5 @@
 */build/
+WIFI_CHECK/build/
+WIFI_BASS_BLUETOOTH/build/
 */.vscode/
 */.devcontainer/
