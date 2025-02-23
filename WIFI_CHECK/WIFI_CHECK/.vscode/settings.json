@@ -1,0 +1,14 @@
+{
+    "C_Cpp.intelliSenseEngine": "default",
+    "idf.espIdfPathWin": "d:\\PROGRAMM\\esp-idf",
+    "idf.espAdfPathWin": "D:\\PROGRAMM\\esp-adf",
+    "idf.openOcdConfigs": [
+        "board/esp32-wrover-kit-3.3v.cfg"
+    ],
+    "idf.portWin": "COM4",
+    "idf.toolsPathWin": "C:\\Users\\Venia\\.espressif",
+    "idf.customExtraVars": {
+        "IDF_TARGET": "esp32"
+    },
+    "idf.flashType": "JTAG"
+}
