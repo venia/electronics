@@ -9,3 +9,40 @@ Proteus Learn Plan
 
 ################################################################################################################################################################################################
 https://www.youtube.com/watch?v=e2LmUICp1jA&ab_channel=YellowPurple
+https://www.youtube.com/watch?v=N0qfQQiiCfw&ab_channel=%D0%9F%D1%91%D1%82%D1%80%D0%91%D0%B5%D0%B7%D1%83%D0%BC%D0%BD%D1%8B%D0%B9		
+[DONE]https://www.youtube.com/watch?v=nKVzYXDxsn0&t=7s&ab_channel=SoftwareProjer-%D0%BF%D0%BE%D0%B3%D1%80%D1%83%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%D0%B2%D0%BC%D0%B8%D1%80%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B8%D0%B8IT
+https://www.youtube.com/watch?v=KQT7eSNw6x4&ab_channel=SoftwareProjer-%D0%BF%D0%BE%D0%B3%D1%80%D1%83%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%D0%B2%D0%BC%D0%B8%D1%80%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B8%D0%B8IT
+[DONE]https://www.youtube.com/watch?v=3trcRGcV_hY&t=4s&ab_channel=SoftwareProjer-%D0%BF%D0%BE%D0%B3%D1%80%D1%83%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%D0%B2%D0%BC%D0%B8%D1%80%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B8%D0%B8IT
+https://www.youtube.com/watch?v=bFama6pJqqE&ab_channel=SoftwareProjer-%D0%BF%D0%BE%D0%B3%D1%80%D1%83%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5%D0%B2%D0%BC%D0%B8%D1%80%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D0%BA%D0%B8%D0%B8IT
+[DONE]https://www.youtube.com/watch?v=Rftc7yEGfKU&ab_channel=BlueButterfly
+[DONE]https://www.youtube.com/watch?v=9KKh5NwWm_s&t=44s&ab_channel=%D0%9C%D0%B0%D0%BA%D1%81%D0%B8%D0%BC%D0%9E%D0%B1%D1%83%D1%85%D0%BE%D0%B2
+
+Как УВЕЛИЧИТЬ КОЛИЧЕСТВО ПОРТОВ на Arduino Uno?! Сдвиговый регистр SN74HC595N (выходной)
+https://www.youtube.com/watch?v=Glp5_ZF1SqU&ab_channel=TeacherInventorDIY
+https://www.youtube.com/watch?v=9KKh5NwWm_s&ab_channel=%D0%9C%D0%B0%D0%BA%D1%81%D0%B8%D0%BC%D0%9E%D0%B1%D1%83%D1%85%D0%BE%D0%B2
+https://www.youtube.com/watch?v=N0qfQQiiCfw&ab_channel=%D0%9F%D1%91%D1%82%D1%80%D0%91%D0%B5%D0%B7%D1%83%D0%BC%D0%BD%D1%8B%D0%B9
+https://www.youtube.com/watch?v=VX6Rz2VVxP4&ab_channel=%D0%9F%D1%91%D1%82%D1%80%D0%91%D0%B5%D0%B7%D1%83%D0%BC%D0%BD%D1%8B%D0%B9
+https://www.youtube.com/watch?v=vJKYBIkNB60&t=21s&ab_channel=MajorTomWorkshop
+https://www.youtube.com/watch?v=Lx7jS9RvgqM&ab_channel=HiDev%21%E2%80%93%D0%AD%D0%BB%D0%B5%D0%BA%D1%82%D1%80%D0%BE%D0%BD%D0%B8%D0%BA%D0%B0
+
+Сдвиговый регистр и семисегментный индикатор
+https://www.youtube.com/watch?app=desktop&v=75nUCP1dHP4&ab_channel=%D0%9C%D0%B0%D1%81%D1%82%D0%B5%D1%80%D1%81%D0%BA%D0%B0%D1%8F%D0%A7%D0%B8%D0%B6%D0%B8%D0%BA%D0%B0
+https://www.youtube.com/watch?v=AoN1360DnVw&ab_channel=Tishitu
+
+Управление сдвиговым регистром по одному проводу 1
+https://www.youtube.com/watch?v=QrkYlF0u1xw&ab_channel=RADIOSOFT
+[DONE]https://www.youtube.com/watch?v=gUmNZVgcstY&ab_channel=NelsonDarwinPakTech
+https://www.youtube.com/watch?v=qHYiJkqCr0o&ab_channel=%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9%D0%A1%D1%83%D0%B7%D0%B4%D0%B0%D0%BB%D0%B5%D0%B2
+
+
+Proteus simulation of 9-digit display on 74HC595
+https://www.youtube.com/watch?v=GMqWf4ODv0k&ab_channel=AlexeySilichenko%F0%9F%87%BA%F0%9F%87%A6
+
+74HC595 Simulation with Proteus and Arduino
+https://www.youtube.com/watch?v=fBN_d2lF-Ag&ab_channel=voidloopRobotech%26Automation
+[DONE]https://www.youtube.com/watch?v=mBgg0nv02dQ&ab_channel=RajiIsmail
+
+PROTEUS8-ULN2803 LED DRIVER
+https://www.youtube.com/watch?app=desktop&v=7M2crm4BTVA&ab_channel=MEC_ElectronicDesign
+https://www.youtube.com/watch?v=i4EmJ_yRiak&ab_channel=ManjulaKarunarathna
+
