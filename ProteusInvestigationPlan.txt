@@ -1,1 +1,11 @@
+Proteus Learn Plan
+1) 74HC595 + 8 LED DIODE => DONE
+2) CD4511 + 7SEG-COM-CAT => DONE
+3) 2* 74HC595 + LED             => DONE
+4) ULN2803 + LED
+5) ARDUINO + 2 x 74HC595
+6) ARDUINO + 2 x 74HC595 + ULN2803
+7) 7 Segment + CD4026
 
+################################################################################################################################################################################################
+https://www.youtube.com/watch?v=e2LmUICp1jA&ab_channel=YellowPurple
