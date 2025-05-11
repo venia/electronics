@@ -1,11 +1,12 @@
 Proteus Learn Plan
-1) 74HC595 + 8 LED DIODE => DONE
-2) CD4511 + 7SEG-COM-CAT => DONE
-3) 2* 74HC595 + LED             => DONE
-4) ULN2803 + LED
+1) 74HC595 + 8 LED DIODE 	=> DONE
+2) CD4511 + 7SEG-COM-CAT 	=> DONE
+3) 2* 74HC595 + LED         => DONE
+4) ULN2803 + LED			=> DONE
 5) ARDUINO + 2 x 74HC595
 6) ARDUINO + 2 x 74HC595 + ULN2803
-7) 7 Segment + CD4026
+6) ARDUINO + 2 x 74HC595 + ULN2803 + Transistors
+7) 7 Segment + CD4026		=> DONE
 
 ################################################################################################################################################################################################
 https://www.youtube.com/watch?v=e2LmUICp1jA&ab_channel=YellowPurple
@@ -45,4 +46,7 @@ https://www.youtube.com/watch?v=fBN_d2lF-Ag&ab_channel=voidloopRobotech%26Automa
 PROTEUS8-ULN2803 LED DRIVER
 https://www.youtube.com/watch?app=desktop&v=7M2crm4BTVA&ab_channel=MEC_ElectronicDesign
 https://www.youtube.com/watch?v=i4EmJ_yRiak&ab_channel=ManjulaKarunarathna
+
+Что такое КМОП микросхемы. CMOS. На реальных примерах
+https://www.youtube.com/watch?v=iYyp13bRuFk&ab_channel=ElectronicsClub
 
