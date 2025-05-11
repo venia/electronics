@@ -3,7 +3,7 @@ Proteus Learn Plan
 2) CD4511 + 7SEG-COM-CAT 	=> DONE
 3) 2* 74HC595 + LED         => DONE
 4) ULN2803 + LED			=> DONE
-5) ARDUINO + 2 x 74HC595
+5) ARDUINO + 2 x 74HC595	=> DONE
 6) ARDUINO + 2 x 74HC595 + ULN2803
 6) ARDUINO + 2 x 74HC595 + ULN2803 + Transistors
 7) 7 Segment + CD4026		=> DONE
