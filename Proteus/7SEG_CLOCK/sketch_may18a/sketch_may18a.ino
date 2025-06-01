@@ -18,6 +18,10 @@ int buttonHoursMinutesState; // Текущее состояние кнопки
 unsigned long lastHoursMinutesDebounceTime = 0; // Время последнего изменения состояния
 const unsigned long debounceDelay = 50; // Задержка для устранения дребезга
 
+int lastIncrementState = HIGH; 
+int buttonIncrementState; 
+unsigned long lastIncremenDebounceTime = 0; 
+
 SystemState currentSetStateEnum = SystemState::NORMAL;
 
 
@@ -113,6 +117,7 @@ void loop() {
 
   handleSetButton();
   handle500TrueFalse();
+  handleIncrementButton();
 }
 
 void displayTime() {
@@ -178,6 +183,40 @@ void handleSetButton() {
   }
 
   lastHoursMinutesState = reading;
+}
+
+void handleIncrementButton() {
+  int reading = digitalRead(SET_INCREMENT_PIN);
+
+  if (reading != lastIncrementState) {
+    lastIncremenDebounceTime = millis();
+  }
+
+  if (millis() - lastIncremenDebounceTime >= debounceDelay) {
+    if (reading != buttonIncrementState) {
+      buttonIncrementState = reading;
+      if (buttonIncrementState == LOW) {
+        incrementHoursOrMinutes();
+        Serial.println("Click!");
+      }
+    }
+  }
+
+  lastIncrementState = reading;
+}
+
+void incrementHoursOrMinutes() {
+  if(currentSetStateEnum == SystemState::SET_HOURS) {
+    hours++;
+    if (hours >= 24) {
+      hours = 0;
+    }
+  } else if (currentSetStateEnum == SystemState::SET_MINUTES) {
+    minutes++;
+    if (minutes >= 60) {
+      minutes = 0;
+    }
+  }
 }
 
 // Функция для переключения на следующее состояние
