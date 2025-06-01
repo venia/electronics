@@ -3,8 +3,30 @@
 #define LATCH_PIN 9   // ST_CP (latch)
 #define CLOCK_PIN 10  // SH_CP (clock)
 
+#define SET_HOURS_MINUTES_PIN 7
+#define SET_INCREMENT_PIN 6
+
+// Определение enum для состояний
+enum SystemState {
+  NORMAL,
+  SET_HOURS,
+  SET_MINUTES
+};
+
+int lastHoursMinutesState = HIGH; // Последнее состояние кнопки
+int buttonHoursMinutesState; // Текущее состояние кнопки
+unsigned long lastHoursMinutesDebounceTime = 0; // Время последнего изменения состояния
+const unsigned long debounceDelay = 50; // Задержка для устранения дребезга
+
+SystemState currentSetStateEnum = SystemState::NORMAL;
+
+
+unsigned long lastTrueFalseToggleTime = 0; 
+const unsigned long trueFalseInterval = 500; 
+bool trueFalseState = false; 
+
 // Массив для отображения цифр 0-9 без точки (Q7=A, Q6=B, Q5=C, Q4=D, Q3=E, Q2=F, Q1=G, Q0=DP)
-const byte digitPatterns[10] = {
+const byte digitPatterns[11] = {
   0b00111111, // 0: A–F=1, G,DP=0
   0b00000110, // 1: B,C=1, A,D,E,F,G,DP=0
   0b01011011, // 2: A,B,D,E,G=1, C,F,DP=0
@@ -14,11 +36,12 @@ const byte digitPatterns[10] = {
   0b01111101, // 6: A,C,D,E,F,G=1, B,DP=0
   0b00000111, // 7: A,B,C=1, D,E,F,G,DP=0
   0b01111111, // 8: A–G=1, DP=0
-  0b01101111  // 9: A,B,C,D,F,G=1, E,DP=0
+  0b01101111, // 9: A,B,C,D,F,G=1, E,DP=0
+  0b00000000  // OFF: A-G=0, DP=0
 };
 
 // Массив для отображения цифр 0-9 с точкой (Q7=DP=1)
-const byte digitPatternsWithDot[10] = {
+const byte digitPatternsWithDot[11] = {
   0b00111111 | 0b10000000, // 0: A–F=1, G=0, DP=1
   0b00000110 | 0b10000000, // 1: B,C=1, A,D,E,F,G=0, DP=1
   0b01011011 | 0b10000000, // 2: A,B,D,E,G=1, C,F=0, DP=1
@@ -28,7 +51,8 @@ const byte digitPatternsWithDot[10] = {
   0b01111101 | 0b10000000, // 6: A,C,D,E,F,G=1, B=0, DP=1
   0b00000111 | 0b10000000, // 7: A,B,C=1, D,E,F,G=0, DP=1
   0b01111111 | 0b10000000, // 8: A–G=1, DP=1
-  0b01101111 | 0b10000000  // 9: A,B,C,D,F,G=1, E=0, DP=1
+  0b01101111 | 0b10000000,  // 9: A,B,C,D,F,G=1, E=0, DP=1
+  0b00000000 | 0b10000000  // OFF: A-G=0, DP=0
 };
 
 // Управление цифрами (низкий уровень включает)
@@ -56,6 +80,11 @@ void setup() {
   pinMode(DATA_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
   pinMode(CLOCK_PIN, OUTPUT);
+  pinMode(SET_HOURS_MINUTES_PIN, INPUT_PULLUP);
+  pinMode(SET_INCREMENT_PIN, INPUT_PULLUP);
+
+  Serial.begin(9600);
+  Serial.println("Start...");
 }
 
 void loop() {
@@ -81,12 +110,15 @@ void loop() {
     lastDisplayUpdate = millis();
     displayTime();
   }
+
+  handleSetButton();
+  handle500TrueFalse();
 }
 
 void displayTime() {
   // Разбиваем время на цифры
-  byte digit1 = hours / 10;    // Десятки часов
-  byte digit2 = hours % 10;    // Единицы часов
+  byte digit1 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours / 10);    // Десятки часов
+  byte digit2 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours % 10);    // Единицы часов
   byte digit3 = minutes / 10;  // Десятки минут
   byte digit4 = minutes % 10;  // Единицы минут
 
@@ -126,4 +158,46 @@ void showDigit(byte digitIndex, byte number, bool showDot) {
   // Выбираем шаблон с точкой или без
   shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, showDot ? digitPatternsWithDot[number] : digitPatterns[number]); // Первый 74HC595
   digitalWrite(LATCH_PIN, HIGH);
+}
+
+void handleSetButton() {
+  int reading = digitalRead(SET_HOURS_MINUTES_PIN);
+
+  if (reading != lastHoursMinutesState) {
+    lastHoursMinutesDebounceTime = millis();
+  }
+
+  if (millis() - lastHoursMinutesDebounceTime >= debounceDelay) {
+    if (reading != buttonHoursMinutesState) {
+      buttonHoursMinutesState = reading;
+      if (buttonHoursMinutesState == LOW) {
+        nextState();
+        Serial.println("Click!");
+      }
+    }
+  }
+
+  lastHoursMinutesState = reading;
+}
+
+// Функция для переключения на следующее состояние
+void nextState() {
+  switch (currentSetStateEnum) {
+    case SystemState::NORMAL:
+      currentSetStateEnum = SystemState::SET_HOURS;
+      break;
+    case SystemState::SET_HOURS:
+      currentSetStateEnum = SystemState::SET_MINUTES;
+      break;
+    case SystemState::SET_MINUTES:
+      currentSetStateEnum = SystemState::NORMAL;
+      break;
+  }
+}
+
+void handle500TrueFalse() {
+  if (millis() - lastTrueFalseToggleTime >= trueFalseInterval) {
+    trueFalseState = !trueFalseState; // Переключаем состояние 
+    lastTrueFalseToggleTime = millis(); // Обновляем время
+  }
 }
