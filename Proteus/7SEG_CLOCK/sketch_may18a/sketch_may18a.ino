@@ -119,8 +119,8 @@ void displayTime() {
   // Разбиваем время на цифры
   byte digit1 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours / 10);    // Десятки часов
   byte digit2 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours % 10);    // Единицы часов
-  byte digit3 = minutes / 10;  // Десятки минут
-  byte digit4 = minutes % 10;  // Единицы минут
+  byte digit3 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes / 10);  // Десятки минут
+  byte digit4 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes % 10);  // Единицы минут
 
   // Определяем, показывать ли точку (мигание каждую секунду)
   bool showDot = (seconds % 2 == 0); // Точка горит на чётных секундах
