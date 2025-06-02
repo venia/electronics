@@ -88,7 +88,6 @@ void setup() {
   pinMode(SET_INCREMENT_PIN, INPUT_PULLUP);
 
   Serial.begin(9600);
-  Serial.println("Start...");
 }
 
 void loop() {
