@@ -9,9 +9,9 @@
 #define SET_INCREMENT_PIN 11
 
 // Определяем пины для DS1302
-#define K_CE_PIN 8  // Пин RST (Chip Enable)
-#define K_IO_PIN 7  // Пин DAT (Input/Output)
-#define K_SCLK_PIN 6  // Пин CLK (Serial Clock)
+#define K_CE_PIN 7  // Пин RST (Chip Enable)
+#define K_IO_PIN 6  // Пин DAT (Input/Output)
+#define K_SCLK_PIN 5  // Пин CLK (Serial Clock)
 
 ThreeWire myWire(K_IO_PIN, K_SCLK_PIN, K_CE_PIN); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
@@ -105,7 +105,7 @@ void setup() {
 
   Rtc.Begin(); // Инициализация модуля
   if (!Rtc.IsDateTimeValid()) {
-    Serial.println("RTC потерял время!");
+    Serial.println("RTC lost time");
     Rtc.SetDateTime(newTime);
   }
 
@@ -124,31 +124,42 @@ void setup() {
   }
 
   // инициализация времени
-  // Получаем объект времени
-  RtcDateTime now = Rtc.GetDateTime();
-  // Извлекаем часы, минуты и секунды отдельно
-  int hours = now.Hour();
-  int minutes = now.Minute();
-  int seconds = now.Second();
+  DS1302GetTime();
+
+  // // Получаем объект времени
+  // RtcDateTime now = Rtc.GetDateTime();
+  // // Извлекаем часы, минуты и секунды отдельно
+  // hours = now.Hour();
+  // minutes = now.Minute();
+  // seconds = now.Second();
+  Serial.println(String("HOURS = ") + String(hours));
+  Serial.println(String("MINUTES = ") + String(minutes));
+  Serial.println(String("SECONDS = ") + String(seconds));
 }
 
 void loop() {
   // Обновление времени каждую секунду
-  if (millis() - lastUpdate >= 1000) {
-    lastUpdate = millis();
-    seconds++;
-    if (seconds >= 60) {
-      seconds = 0;
-      minutes++;
-      if (minutes >= 60) {
-        minutes = 0;
-        hours++;
-        if (hours >= 24) {
-          hours = 0;
-        }
-      }
+  // if (millis() - lastUpdate >= 1000) {
+  //   lastUpdate = millis();
+  //   seconds++;
+  //   if (seconds >= 60) {
+  //     seconds = 0;
+  //     minutes++;
+  //     if (minutes >= 60) {
+  //       minutes = 0;
+  //       hours++;
+  //       if (hours >= 24) {
+  //         hours = 0;
+  //       }
+  //     }
+  //   }
+  // }
+
+    if (millis() - lastUpdate >= 1000) {
+      lastUpdate = millis();
+
+      DS1302GetTime();
     }
-  }
 
   // Мультиплексирование дисплея
   if (millis() - lastDisplayUpdate >= displayInterval) {
@@ -280,4 +291,14 @@ void handle500TrueFalse() {
     trueFalseState = !trueFalseState; // Переключаем состояние 
     lastTrueFalseToggleTime = millis(); // Обновляем время
   }
+}
+
+void DS1302GetTime() {
+  // инициализация времени
+  // Получаем объект времени
+  RtcDateTime now = Rtc.GetDateTime();
+  // Извлекаем часы, минуты и секунды отдельно
+  hours = now.Hour();
+  minutes = now.Minute();
+  seconds = now.Second();
 }
