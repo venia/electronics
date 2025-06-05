@@ -3,8 +3,8 @@
 #define LATCH_PIN 9   // ST_CP (latch)
 #define CLOCK_PIN 10  // SH_CP (clock)
 
-#define SET_HOURS_MINUTES_PIN 7
-#define SET_INCREMENT_PIN 6
+#define SET_HOURS_MINUTES_PIN 12
+#define SET_INCREMENT_PIN 11
 
 // Определение enum для состояний
 enum SystemState {
