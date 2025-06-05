@@ -1,3 +1,5 @@
+#include <RtcDS1302.h>
+
 // Пины для сдвиговых регистров 74HC595
 #define DATA_PIN  8   // DS (serial data)
 #define LATCH_PIN 9   // ST_CP (latch)
@@ -5,6 +7,14 @@
 
 #define SET_HOURS_MINUTES_PIN 12
 #define SET_INCREMENT_PIN 11
+
+// Определяем пины для DS1302
+#define K_CE_PIN 8  // Пин RST (Chip Enable)
+#define K_IO_PIN 7  // Пин DAT (Input/Output)
+#define K_SCLK_PIN 6  // Пин CLK (Serial Clock)
+
+ThreeWire myWire(K_IO_PIN, K_SCLK_PIN, K_CE_PIN); // IO, SCLK, CE
+RtcDS1302<ThreeWire> Rtc(myWire);
 
 // Определение enum для состояний
 enum SystemState {
@@ -72,7 +82,7 @@ const byte allDigitsOff = 0b11111111; // Все Q0-Q7=1
 
 // Переменные для времени
 unsigned long lastUpdate = 0;
-byte hours = 12, minutes = 0, seconds = 0;
+int hours = 12, minutes = 0, seconds = 0;
 
 // Переменные для мультиплексирования
 unsigned long lastDisplayUpdate = 0;
@@ -88,6 +98,38 @@ void setup() {
   pinMode(SET_INCREMENT_PIN, INPUT_PULLUP);
 
   Serial.begin(9600);
+
+  // Запускаем модуль DS1302
+  // Установка времени вручную (пример: 16:44:00, 5 июня 2025)
+  RtcDateTime newTime = RtcDateTime(2025, 6, 5, 16, 44, 0);
+
+  Rtc.Begin(); // Инициализация модуля
+  if (!Rtc.IsDateTimeValid()) {
+    Serial.println("RTC потерял время!");
+    Rtc.SetDateTime(newTime);
+  }
+
+
+  if (Rtc.GetIsWriteProtected())
+  {
+      Serial.println("RTC was write protected, enabling writing now");
+      Rtc.SetIsWriteProtected(false);
+  }
+  
+  
+  if (!Rtc.GetIsRunning())
+  {
+      Serial.println("RTC was not actively running, starting now");
+      Rtc.SetIsRunning(true);
+  }
+
+  // инициализация времени
+  // Получаем объект времени
+  RtcDateTime now = Rtc.GetDateTime();
+  // Извлекаем часы, минуты и секунды отдельно
+  int hours = now.Hour();
+  int minutes = now.Minute();
+  int seconds = now.Second();
 }
 
 void loop() {
