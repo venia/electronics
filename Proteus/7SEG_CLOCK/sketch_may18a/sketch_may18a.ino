@@ -155,7 +155,7 @@ void loop() {
   //   }
   // }
 
-    if (millis() - lastUpdate >= 1000) {
+    if (millis() - lastUpdate >= 200) {
       lastUpdate = millis();
 
       DS1302GetTime();
@@ -258,16 +258,23 @@ void handleIncrementButton() {
 }
 
 void incrementHoursOrMinutes() {
+  RtcDateTime now = Rtc.GetDateTime();
   if(currentSetStateEnum == SystemState::SET_HOURS) {
+    hours = now.Hour();
     hours++;
     if (hours >= 24) {
       hours = 0;
     }
+    RtcDateTime newTime = RtcDateTime(now.Year(), now.Month(), now.Day(), hours, now.Minute(), now.Second());
+    Rtc.SetDateTime(newTime);
   } else if (currentSetStateEnum == SystemState::SET_MINUTES) {
+    minutes = now.Minute();
     minutes++;
     if (minutes >= 60) {
       minutes = 0;
     }
+    RtcDateTime newTime = RtcDateTime(now.Year(), now.Month(), now.Day(), now.Hour(), minutes, now.Second());
+    Rtc.SetDateTime(newTime);
   }
 }
 
