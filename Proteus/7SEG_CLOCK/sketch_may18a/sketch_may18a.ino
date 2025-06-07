@@ -65,16 +65,20 @@ const byte digitPatternsWithDot[11] = {
   0b01111101 | 0b10000000, // 6: A,C,D,E,F,G=1, B=0, DP=1
   0b00000111 | 0b10000000, // 7: A,B,C=1, D,E,F,G=0, DP=1
   0b01111111 | 0b10000000, // 8: A–G=1, DP=1
-  0b01101111 | 0b10000000,  // 9: A,B,C,D,F,G=1, E=0, DP=1
+  0b01101111 | 0b10000000, // 9: A,B,C,D,F,G=1, E=0, DP=1
   0b00000000 | 0b10000000  // OFF: A-G=0, DP=0
 };
 
 // Управление цифрами (низкий уровень включает)
-const byte digitControl[4] = {
+const byte digitControl[8] = {
   0b11111110, // DIGIT1: Q0=0, Q1-Q7=1
   0b11111101, // DIGIT2: Q1=0, Q0,Q2-Q7=1
   0b11111011, // DIGIT3: Q2=0, Q0,Q1,Q3-Q7=1
-  0b11110111  // DIGIT4: Q3=0, Q0-Q2,Q4-Q7=1
+  0b11110111, // DIGIT4: Q3=0, Q0-Q2,Q4-Q7=1
+  0b11101111, // DIGIT5
+  0b11011111, // DIGIT6
+  0b10111111, // DIGIT7
+  0b01111111  // DIGIT8
 };
 
 // Выключение всех цифр
@@ -87,9 +91,11 @@ int hours = 12, minutes = 0, seconds = 0;
 // Переменные для мультиплексирования
 unsigned long lastDisplayUpdate = 0;
 byte currentDigit = 0;
-const unsigned long displayInterval = 4; // Интервал мультиплексирования, мс
-
+const unsigned long displayInterval = 3; // Интервал мультиплексирования, мс
+// ===========================================================================================[SETUP]==========================================================================================
 void setup() {
+  Serial.begin(9600);
+
   // Настройка пинов
   pinMode(DATA_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
@@ -97,7 +103,6 @@ void setup() {
   pinMode(SET_HOURS_MINUTES_PIN, INPUT_PULLUP);
   pinMode(SET_INCREMENT_PIN, INPUT_PULLUP);
 
-  Serial.begin(9600);
 
   // Запускаем модуль DS1302
   // Установка времени вручную (пример: 16:44:00, 5 июня 2025)
@@ -109,56 +114,34 @@ void setup() {
     Rtc.SetDateTime(newTime);
   }
 
-
   if (Rtc.GetIsWriteProtected())
   {
-      Serial.println("RTC was write protected, enabling writing now");
-      Rtc.SetIsWriteProtected(false);
+    Serial.println("RTC was write protected, enabling writing now");
+    Rtc.SetIsWriteProtected(false);
   }
   
   
   if (!Rtc.GetIsRunning())
   {
-      Serial.println("RTC was not actively running, starting now");
-      Rtc.SetIsRunning(true);
+    Serial.println("RTC was not actively running, starting now");
+    Rtc.SetIsRunning(true);
   }
 
   // инициализация времени
-  DS1302GetTime();
+  DS1302UpdateGlobalHourMinuteSecondTime();
 
   // // Получаем объект времени
-  // RtcDateTime now = Rtc.GetDateTime();
-  // // Извлекаем часы, минуты и секунды отдельно
-  // hours = now.Hour();
-  // minutes = now.Minute();
-  // seconds = now.Second();
   Serial.println(String("HOURS = ") + String(hours));
   Serial.println(String("MINUTES = ") + String(minutes));
   Serial.println(String("SECONDS = ") + String(seconds));
 }
+// ===========================================================================================[SETUP]==========================================================================================
 
+// ===========================================================================================[LOOP]==========================================================================================
 void loop() {
-  // Обновление времени каждую секунду
-  // if (millis() - lastUpdate >= 1000) {
-  //   lastUpdate = millis();
-  //   seconds++;
-  //   if (seconds >= 60) {
-  //     seconds = 0;
-  //     minutes++;
-  //     if (minutes >= 60) {
-  //       minutes = 0;
-  //       hours++;
-  //       if (hours >= 24) {
-  //         hours = 0;
-  //       }
-  //     }
-  //   }
-  // }
-
     if (millis() - lastUpdate >= 200) {
       lastUpdate = millis();
-
-      DS1302GetTime();
+      DS1302UpdateGlobalHourMinuteSecondTime();
     }
 
   // Мультиплексирование дисплея
@@ -171,6 +154,7 @@ void loop() {
   handle500TrueFalse();
   handleIncrementButton();
 }
+// ===========================================================================================[LOOP]==========================================================================================
 
 void displayTime() {
   // Разбиваем время на цифры
@@ -178,6 +162,8 @@ void displayTime() {
   byte digit2 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours % 10);    // Единицы часов
   byte digit3 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes / 10);  // Десятки минут
   byte digit4 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes % 10);  // Единицы минут
+  byte digit5 = (seconds / 10); // Десятки секунд
+  byte digit6 = (seconds % 10); // Единицы секунд
 
   // Определяем, показывать ли точку (мигание каждую секунду)
   bool showDot = (seconds % 2 == 0); // Точка горит на чётных секундах
@@ -196,10 +182,16 @@ void displayTime() {
     case 3:
       showDigit(3, digit4, false); // DIGIT4, без точки
       break;
+    case 4:
+      showDigit(4, digit5, false); // DIGIT4, без точки
+      break;
+    case 5:
+      showDigit(5, digit6, false); // DIGIT5, без точки
+      break;
   }
 
   // Переключаемся на следующую цифру
-  currentDigit = (currentDigit + 1) % 4;
+  currentDigit = (currentDigit + 1) % 8;
 }
 
 void showDigit(byte digitIndex, byte number, bool showDot) {
@@ -300,7 +292,7 @@ void handle500TrueFalse() {
   }
 }
 
-void DS1302GetTime() {
+void DS1302UpdateGlobalHourMinuteSecondTime() {
   // инициализация времени
   // Получаем объект времени
   RtcDateTime now = Rtc.GetDateTime();
