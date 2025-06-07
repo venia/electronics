@@ -139,20 +139,35 @@ void setup() {
 
 // ===========================================================================================[LOOP]==========================================================================================
 void loop() {
-    if (millis() - lastUpdate >= 200) {
-      lastUpdate = millis();
-      DS1302UpdateGlobalHourMinuteSecondTime();
-    }
+  // if (millis() - lastUpdate >= 200) {
+  //   lastUpdate = millis();
+  //   DS1302UpdateGlobalHourMinuteSecondTime();
+  // }
 
-  // Мультиплексирование дисплея
+  // // Мультиплексирование дисплея
+  // if (millis() - lastDisplayUpdate >= displayInterval) {
+  //   lastDisplayUpdate = millis();
+  //   displayTime();
+  // }
+
+  // handleSetButton();
+  // handle500TrueFalse();
+  // handleIncrementButton();
+
+  // Мультиплексирование дисплея (приоритет)
   if (millis() - lastDisplayUpdate >= displayInterval) {
     lastDisplayUpdate = millis();
     displayTime();
+    handleSetButton();
+    handleIncrementButton();
   }
 
-  handleSetButton();
-  handle500TrueFalse();
-  handleIncrementButton();
+  // Обновление времени и кнопок реже
+  if (millis() - lastUpdate >= 200) {
+    lastUpdate = millis();
+    DS1302UpdateGlobalHourMinuteSecondTime();
+    handle500TrueFalse();
+  }
 }
 // ===========================================================================================[LOOP]==========================================================================================
 
