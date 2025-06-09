@@ -1,17 +1,16 @@
+#include <SPI.h> // Добавляем библиотеку SPI
 #include <RtcDS1302.h>
 
 // Пины для сдвиговых регистров 74HC595
-#define DATA_PIN  8   // DS (serial data)
-#define LATCH_PIN 9   // ST_CP (latch)
-#define CLOCK_PIN 10  // SH_CP (clock)
-
+#define LATCH_PIN 9   // STCP (latch), можно выбрать любой пин
+// MOSI (пин 11) и SCLK (пин 13) используются аппаратно через SPI
 #define SET_HOURS_MINUTES_PIN 12
-#define SET_INCREMENT_PIN 11
+#define SET_INCREMENT_PIN 10
 
-// Определяем пины для DS1302
-#define K_CE_PIN 7  // Пин RST (Chip Enable)
-#define K_IO_PIN 6  // Пин DAT (Input/Output)
-#define K_SCLK_PIN 5  // Пин CLK (Serial Clock)
+// Пины для DS1302
+#define K_CE_PIN 7  // RST (Chip Enable)
+#define K_IO_PIN 6  // DAT (Input/Output)
+#define K_SCLK_PIN 5  // CLK (Serial Clock)
 
 ThreeWire myWire(K_IO_PIN, K_SCLK_PIN, K_CE_PIN); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
@@ -33,7 +32,6 @@ int buttonIncrementState;
 unsigned long lastIncremenDebounceTime = 0; 
 
 SystemState currentSetStateEnum = SystemState::NORMAL;
-
 
 unsigned long lastTrueFalseToggleTime = 0; 
 const unsigned long trueFalseInterval = 500; 
@@ -60,7 +58,7 @@ const byte digitPatternsWithDot[11] = {
   0b00000110 | 0b10000000, // 1: B,C=1, A,D,E,F,G=0, DP=1
   0b01011011 | 0b10000000, // 2: A,B,D,E,G=1, C,F=0, DP=1
   0b01001111 | 0b10000000, // 3: A,B,C,D,G=1, E,F=0, DP=1
-  0b01100110 | 0b10000000, // 4: B,C,F,G=1, A,D,E=0, DP=1
+  0b01100110 | 0b10000000, // 4: B,C,F,G=1, declarationsA,D,E=0, DP=1
   0b01101101 | 0b10000000, // 5: A,C,D,F,G=1, B,E=0, DP=1
   0b01111101 | 0b10000000, // 6: A,C,D,E,F,G=1, B=0, DP=1
   0b00000111 | 0b10000000, // 7: A,B,C=1, D,E,F,G=0, DP=1
@@ -86,51 +84,46 @@ const byte allDigitsOff = 0b11111111; // Все Q0-Q7=1
 
 // Переменные для времени
 unsigned long lastUpdate = 0;
+unsigned long lastUpdateSeconds = 0;
+unsigned long lastUpdateDS1302 = 0;
 int hours = 12, minutes = 0, seconds = 0;
 
 // Переменные для мультиплексирования
 unsigned long lastDisplayUpdate = 0;
 byte currentDigit = 0;
-const unsigned long displayInterval = 3; // Интервал мультиплексирования, мс
+const unsigned long MULTIPLEXER_INTERVAL = 3; // Интервал мультиплексирования, мс
+
 // ===========================================================================================[SETUP]==========================================================================================
 void setup() {
   Serial.begin(9600);
 
   // Настройка пинов
-  pinMode(DATA_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
-  pinMode(CLOCK_PIN, OUTPUT);
   pinMode(SET_HOURS_MINUTES_PIN, INPUT_PULLUP);
   pinMode(SET_INCREMENT_PIN, INPUT_PULLUP);
 
+  // Инициализация SPI
+  SPI.begin();
+  SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0)); // 8 МГц, старший бит первый, режим 0
 
   // Запускаем модуль DS1302
-  // Установка времени вручную (пример: 16:44:00, 5 июня 2025)
-  RtcDateTime newTime = RtcDateTime(2025, 6, 5, 16, 44, 0);
-
-  Rtc.Begin(); // Инициализация модуля
+  Rtc.Begin();
+  RtcDateTime newTime = RtcDateTime(2025, 6, 5, 16, 44, 0); // Установка времени: 16:44:00, 5 июня 2025
   if (!Rtc.IsDateTimeValid()) {
     Serial.println("RTC lost time");
     Rtc.SetDateTime(newTime);
   }
-
-  if (Rtc.GetIsWriteProtected())
-  {
+  if (Rtc.GetIsWriteProtected()) {
     Serial.println("RTC was write protected, enabling writing now");
     Rtc.SetIsWriteProtected(false);
   }
-  
-  
-  if (!Rtc.GetIsRunning())
-  {
+  if (!Rtc.GetIsRunning()) {
     Serial.println("RTC was not actively running, starting now");
     Rtc.SetIsRunning(true);
   }
 
-  // инициализация времени
+  // Инициализация времени
   DS1302UpdateGlobalHourMinuteSecondTime();
-
-  // // Получаем объект времени
   Serial.println(String("HOURS = ") + String(hours));
   Serial.println(String("MINUTES = ") + String(minutes));
   Serial.println(String("SECONDS = ") + String(seconds));
@@ -139,23 +132,27 @@ void setup() {
 
 // ===========================================================================================[LOOP]==========================================================================================
 void loop() {
-  // if (millis() - lastUpdate >= 200) {
-  //   lastUpdate = millis();
-  //   DS1302UpdateGlobalHourMinuteSecondTime();
-  // }
-
-  // // Мультиплексирование дисплея
-  // if (millis() - lastDisplayUpdate >= displayInterval) {
-  //   lastDisplayUpdate = millis();
-  //   displayTime();
-  // }
-
-  // handleSetButton();
-  // handle500TrueFalse();
-  // handleIncrementButton();
+  if(millis() - lastUpdateDS1302 >= 60000) { // Every 60 sec
+    lastUpdateDS1302 = millis();
+    DS1302UpdateGlobalHourMinuteSecondTime();
+  }else if (millis() - lastUpdateSeconds >= 1000) { // Update time for every seconds
+    lastUpdateSeconds = millis();
+    seconds++;
+    if (seconds >= 60) {
+      seconds = 0;
+      minutes++;
+      if (minutes >= 60) {
+        minutes = 0;
+        hours++;
+        if (hours >= 24) {
+          hours = 0;
+        }
+      }
+    }
+  }
 
   // Мультиплексирование дисплея (приоритет)
-  if (millis() - lastDisplayUpdate >= displayInterval) {
+  if (millis() - lastDisplayUpdate >= MULTIPLEXER_INTERVAL) {
     lastDisplayUpdate = millis();
     displayTime();
     handleSetButton();
@@ -165,7 +162,6 @@ void loop() {
   // Обновление времени и кнопок реже
   if (millis() - lastUpdate >= 200) {
     lastUpdate = millis();
-    DS1302UpdateGlobalHourMinuteSecondTime();
     handle500TrueFalse();
   }
 }
@@ -198,29 +194,28 @@ void displayTime() {
       showDigit(3, digit4, false); // DIGIT4, без точки
       break;
     case 4:
-      showDigit(4, digit5, false); // DIGIT4, без точки
+      showDigit(4, digit5, false); // DIGIT5, без точки
       break;
     case 5:
-      showDigit(5, digit6, false); // DIGIT5, без точки
+      showDigit(5, digit6, false); // DIGIT6, без точки
       break;
   }
 
   // Переключаемся на следующую цифру
-  currentDigit = (currentDigit + 1) % 8;
+  currentDigit = (currentDigit + 1) % 6;
 }
 
 void showDigit(byte digitIndex, byte number, bool showDot) {
   // Выключить все цифры
   digitalWrite(LATCH_PIN, LOW);
-  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, allDigitsOff); // Второй 74HC595: все выкл
-  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, 0x00);         // Первый 74HC595: сегменты выкл
+  SPI.transfer(allDigitsOff); // Второй 74HC595: все выкл
+  SPI.transfer(0x00);        // Первый 74HC595: сегменты выкл
   digitalWrite(LATCH_PIN, HIGH);
 
   // Включить нужную цифру
   digitalWrite(LATCH_PIN, LOW);
-  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, digitControl[digitIndex]); // Второй 74HC595
-  // Выбираем шаблон с точкой или без
-  shiftOut(DATA_PIN, CLOCK_PIN, MSBFIRST, showDot ? digitPatternsWithDot[number] : digitPatterns[number]); // Первый 74HC595
+  SPI.transfer(digitControl[digitIndex]); // Второй 74HC595: выбор цифры
+  SPI.transfer(showDot ? digitPatternsWithDot[number] : digitPatterns[number]); // Первый 74HC595: сегменты
   digitalWrite(LATCH_PIN, HIGH);
 }
 
@@ -266,7 +261,7 @@ void handleIncrementButton() {
 
 void incrementHoursOrMinutes() {
   RtcDateTime now = Rtc.GetDateTime();
-  if(currentSetStateEnum == SystemState::SET_HOURS) {
+  if (currentSetStateEnum == SystemState::SET_HOURS) {
     hours = now.Hour();
     hours++;
     if (hours >= 24) {
@@ -285,7 +280,6 @@ void incrementHoursOrMinutes() {
   }
 }
 
-// Функция для переключения на следующее состояние
 void nextState() {
   switch (currentSetStateEnum) {
     case SystemState::NORMAL:
@@ -308,10 +302,7 @@ void handle500TrueFalse() {
 }
 
 void DS1302UpdateGlobalHourMinuteSecondTime() {
-  // инициализация времени
-  // Получаем объект времени
   RtcDateTime now = Rtc.GetDateTime();
-  // Извлекаем часы, минуты и секунды отдельно
   hours = now.Hour();
   minutes = now.Minute();
   seconds = now.Second();
