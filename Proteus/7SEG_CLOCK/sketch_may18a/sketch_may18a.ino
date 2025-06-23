@@ -22,14 +22,18 @@ enum SystemState {
   SET_MINUTES
 };
 
+volatile uint8_t TIMER1_COMPA_COUNTER = 0;
+volatile uint8_t TIMER1_COMPB_COUNTER = 0;
+
 int lastHoursMinutesState = HIGH; // Последнее состояние кнопки
 int buttonHoursMinutesState; // Текущее состояние кнопки
 unsigned long lastHoursMinutesDebounceTime = 0; // Время последнего изменения состояния
-const unsigned long debounceDelay = 50; // Задержка для устранения дребезга
 
 int lastIncrementState = HIGH; 
 int buttonIncrementState; 
 unsigned long lastIncremenDebounceTime = 0; 
+
+const unsigned long debounceDelay = 50; // Задержка для устранения дребезга
 
 SystemState currentSetStateEnum = SystemState::NORMAL;
 
@@ -96,6 +100,17 @@ const unsigned long MULTIPLEXER_INTERVAL = 3; // Интервал мультип
 // ===========================================================================================[SETUP]==========================================================================================
 void setup() {
   Serial.begin(9600);
+  // Timer1 configure A & B 
+  noInterrupts();
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
+  TCCR1B |= (1 << CS11) | (1 << CS10); // Предделитель 64
+  OCR1A = 31250; // 0.25 с
+  OCR1B = 62499; // 0.5 с (1000000 мкс / 4 мкс = 250000 / 2 = 124999)
+  TCCR1B |= (1 << WGM12); // Режим CTC
+  TIMSK1 |= (1 << OCIE1A) | (1 << OCIE1B); // Прерывания для каналов A и B
+  interrupts();
 
   // Настройка пинов
   pinMode(LATCH_PIN, OUTPUT);
@@ -130,12 +145,32 @@ void setup() {
 }
 // ===========================================================================================[SETUP]==========================================================================================
 
+// ============================================================================================[ISR]===========================================================================================
+ISR(TIMER1_COMPA_vect) { // 0.25 с
+  // Every 0.25 sec
+  TIMER1_COMPA_COUNTER++; // Увеличиваем счётчик для 10 с
+  if (TIMER1_COMPA_COUNTER >= 40) { // 40 * 0.25 с = 10 с
+    // Every 10 sec
+    TIMER1_COMPA_COUNTER = 0;
+  }
+}
+// ============================================================================================[ISR]===========================================================================================
+ISR(TIMER1_COMPB_vect) { // 0.5 с
+  // 0.5 sec
+  TIMER1_COMPB_COUNTER++;
+  if (TIMER1_COMPB_COUNTER >= 120) {
+    // Every 60 sec
+    TIMER1_COMPB_COUNTER = 0;
+  }
+}
+// ============================================================================================[ISR]===========================================================================================
+
 // ===========================================================================================[LOOP]==========================================================================================
 void loop() {
-  if(millis() - lastUpdateDS1302 >= 60000) { // Every 60 sec
+  if (millis() - lastUpdateDS1302 >= 60000) { // Every 60 sec
     lastUpdateDS1302 = millis();
     DS1302UpdateGlobalHourMinuteSecondTime();
-  }else if (millis() - lastUpdateSeconds >= 1000) { // Update time for every seconds
+  } else if (millis() - lastUpdateSeconds >= 1000) { // Update time for every seconds
     lastUpdateSeconds = millis();
     seconds++;
     if (seconds >= 60) {
