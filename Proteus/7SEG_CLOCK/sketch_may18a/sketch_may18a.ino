@@ -147,18 +147,22 @@ void setup() {
 
 // ============================================================================================[ISR]===========================================================================================
 ISR(TIMER1_COMPA_vect) { // 0.25 с
+  timer250MillSecondsFunction();
   // Every 0.25 sec
   TIMER1_COMPA_COUNTER++; // Увеличиваем счётчик для 10 с
   if (TIMER1_COMPA_COUNTER >= 40) { // 40 * 0.25 с = 10 с
+    timer10SeccondsFunction();
     // Every 10 sec
     TIMER1_COMPA_COUNTER = 0;
   }
 }
 // ============================================================================================[ISR]===========================================================================================
 ISR(TIMER1_COMPB_vect) { // 0.5 с
+  timer500MillSecondsFunction();
   // 0.5 sec
   TIMER1_COMPB_COUNTER++;
   if (TIMER1_COMPB_COUNTER >= 120) {
+    timer60SeccondsFunction();
     // Every 60 sec
     TIMER1_COMPB_COUNTER = 0;
   }
@@ -341,4 +345,20 @@ void DS1302UpdateGlobalHourMinuteSecondTime() {
   hours = now.Hour();
   minutes = now.Minute();
   seconds = now.Second();
+}
+
+void timer250MillSecondsFunction() {
+
+}
+
+void timer10SeccondsFunction() {
+
+}
+
+void timer500MillSecondsFunction() {
+
+}
+
+void timer60SeccondsFunction() {
+  
 }
