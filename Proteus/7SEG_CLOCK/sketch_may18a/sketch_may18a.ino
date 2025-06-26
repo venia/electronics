@@ -23,7 +23,6 @@ enum SystemState {
 };
 
 volatile uint8_t TIMER1_COMPA_COUNTER = 0;
-volatile uint8_t TIMER1_COMPB_COUNTER = 0;
 
 int lastHoursMinutesState = HIGH; // Последнее состояние кнопки
 int buttonHoursMinutesState; // Текущее состояние кнопки
@@ -89,7 +88,7 @@ const byte allDigitsOff = 0b11111111; // Все Q0-Q7=1
 // Переменные для времени
 unsigned long lastUpdate = 0;
 unsigned long lastUpdateSeconds = 0;
-unsigned long lastUpdateDS1302 = 0;
+// unsigned long lastUpdateDS1302 = 0;
 int hours = 12, minutes = 0, seconds = 0;
 
 // Переменные для мультиплексирования
@@ -106,10 +105,9 @@ void setup() {
   TCCR1B = 0;
   TCNT1 = 0;
   TCCR1B |= (1 << CS11) | (1 << CS10); // Предделитель 64
-  OCR1A = 31250; // 0.25 с
-  OCR1B = 62499; // 0.5 с (1000000 мкс / 4 мкс = 250000 / 2 = 124999)
+  OCR1A = 62500; // 0.25 с
   TCCR1B |= (1 << WGM12); // Режим CTC
-  TIMSK1 |= (1 << OCIE1A) | (1 << OCIE1B); // Прерывания для каналов A и B
+  TIMSK1 |= (1 << OCIE1A); 
   interrupts();
 
   // Настройка пинов
@@ -146,35 +144,33 @@ void setup() {
 // ===========================================================================================[SETUP]==========================================================================================
 
 // ============================================================================================[ISR]===========================================================================================
-ISR(TIMER1_COMPA_vect) { // 0.25 с
-  timer250MillSecondsFunction();
+ISR(TIMER1_COMPA_vect) { // 0.25 s
   // Every 0.25 sec
-  TIMER1_COMPA_COUNTER++; // Увеличиваем счётчик для 10 с
-  if (TIMER1_COMPA_COUNTER >= 40) { // 40 * 0.25 с = 10 с
-    timer10SeccondsFunction();
-    // Every 10 sec
-    TIMER1_COMPA_COUNTER = 0;
+  TIMER1_COMPA_COUNTER++; 
+
+  timer250MillSecondsFunction();
+  
+  // 0.5 с: каждые 2 прерывания (2 * 0.25 с = 0.5 с)
+  if (TIMER1_COMPA_COUNTER % 2 == 0) {
+    timer500MillSecondsFunction();
   }
-}
-// ============================================================================================[ISR]===========================================================================================
-ISR(TIMER1_COMPB_vect) { // 0.5 с
-  timer500MillSecondsFunction();
-  // 0.5 sec
-  TIMER1_COMPB_COUNTER++;
-  if (TIMER1_COMPB_COUNTER >= 120) {
+  
+  // 10 с: каждые 40 прерываний (40 * 0.25 с = 10 с)
+  if (TIMER1_COMPA_COUNTER % 40 == 0) {
+    timer10SeccondsFunction();
+  }
+  
+  // 60 с: каждые 240 прерываний (240 * 0.25 с = 60 с)
+  if (TIMER1_COMPA_COUNTER >= 240) {
     timer60SeccondsFunction();
-    // Every 60 sec
-    TIMER1_COMPB_COUNTER = 0;
+    TIMER1_COMPA_COUNTER = 0;
   }
 }
 // ============================================================================================[ISR]===========================================================================================
 
 // ===========================================================================================[LOOP]==========================================================================================
 void loop() {
-  if (millis() - lastUpdateDS1302 >= 60000) { // Every 60 sec
-    lastUpdateDS1302 = millis();
-    DS1302UpdateGlobalHourMinuteSecondTime();
-  } else if (millis() - lastUpdateSeconds >= 1000) { // Update time for every seconds
+  if (millis() - lastUpdateSeconds >= 1000) { // Update time for every seconds
     lastUpdateSeconds = millis();
     seconds++;
     if (seconds >= 60) {
@@ -348,17 +344,18 @@ void DS1302UpdateGlobalHourMinuteSecondTime() {
 }
 
 void timer250MillSecondsFunction() {
-
+  // Serial.println("timer250MillSecondsFunction");
 }
 
 void timer10SeccondsFunction() {
-
+  // Serial.println("timer10SeccondsFunction");
 }
 
 void timer500MillSecondsFunction() {
-
+  // Serial.println("timer500MillSecondsFunction");
 }
 
 void timer60SeccondsFunction() {
-  
+  DS1302UpdateGlobalHourMinuteSecondTime();
+  // Serial.println("timer60SeccondsFunction");
 }
