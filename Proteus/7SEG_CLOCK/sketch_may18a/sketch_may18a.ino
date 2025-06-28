@@ -86,9 +86,7 @@ const byte digitControl[8] = {
 const byte allDigitsOff = 0b11111111; // Все Q0-Q7=1
 
 // Переменные для времени
-unsigned long lastUpdate = 0;
 unsigned long lastUpdateSeconds = 0;
-// unsigned long lastUpdateDS1302 = 0;
 int hours = 12, minutes = 0, seconds = 0;
 
 // Переменные для мультиплексирования
@@ -192,12 +190,6 @@ void loop() {
     displayTime();
     handleSetButton();
     handleIncrementButton();
-  }
-
-  // Обновление времени и кнопок реже
-  if (millis() - lastUpdate >= 200) {
-    lastUpdate = millis();
-    handle500TrueFalse();
   }
 }
 // ===========================================================================================[LOOP]==========================================================================================
@@ -329,13 +321,6 @@ void nextState() {
   }
 }
 
-void handle500TrueFalse() {
-  if (millis() - lastTrueFalseToggleTime >= trueFalseInterval) {
-    trueFalseState = !trueFalseState; // Переключаем состояние 
-    lastTrueFalseToggleTime = millis(); // Обновляем время
-  }
-}
-
 void DS1302UpdateGlobalHourMinuteSecondTime() {
   RtcDateTime now = Rtc.GetDateTime();
   hours = now.Hour();
@@ -344,18 +329,17 @@ void DS1302UpdateGlobalHourMinuteSecondTime() {
 }
 
 void timer250MillSecondsFunction() {
-  // Serial.println("timer250MillSecondsFunction");
+  trueFalseState = !trueFalseState; // Переключаем состояние
 }
 
 void timer10SeccondsFunction() {
-  // Serial.println("timer10SeccondsFunction");
+  
 }
 
 void timer500MillSecondsFunction() {
-  // Serial.println("timer500MillSecondsFunction");
+  
 }
 
 void timer60SeccondsFunction() {
   DS1302UpdateGlobalHourMinuteSecondTime();
-  // Serial.println("timer60SeccondsFunction");
 }
