@@ -33,7 +33,7 @@ int lastIncrementState = HIGH;
 int buttonIncrementState; 
 unsigned long lastIncremenDebounceTime = 0; 
 
-const unsigned long debounceDelay = 50; // Задержка для устранения дребезга
+const unsigned long DEBOUNCE_DELAY = 50; // Задержка для устранения дребезга
 
 SystemState currentSetStateEnum = SystemState::NORMAL;
 
@@ -254,7 +254,7 @@ void handleSetButton() {
     lastHoursMinutesDebounceTime = millis();
   }
 
-  if (millis() - lastHoursMinutesDebounceTime >= debounceDelay) {
+  if (millis() - lastHoursMinutesDebounceTime >= DEBOUNCE_DELAY) {
     if (reading != buttonHoursMinutesState) {
       buttonHoursMinutesState = reading;
       if (buttonHoursMinutesState == LOW) {
@@ -274,7 +274,7 @@ void handleIncrementButton() {
     lastIncremenDebounceTime = millis();
   }
 
-  if (millis() - lastIncremenDebounceTime >= debounceDelay) {
+  if (millis() - lastIncremenDebounceTime >= DEBOUNCE_DELAY) {
     if (reading != buttonIncrementState) {
       buttonIncrementState = reading;
       if (buttonIncrementState == LOW) {
