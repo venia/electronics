@@ -1,6 +1,6 @@
 #include <SPI.h> // Добавляем библиотеку SPI
 #include <RtcDS1302.h>
-#include <Adafruit_BMP085.h>
+//#include <Adafruit_BMP085.h>
 
 // Пины для сдвиговых регистров 74HC595
 #define LATCH_PIN 9   // STCP (latch), можно выбрать любой пин
