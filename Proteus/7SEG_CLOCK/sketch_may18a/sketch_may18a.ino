@@ -22,7 +22,9 @@ Adafruit_BMP085 bmp;    // I2C
 enum SystemState {
   NORMAL,
   SET_HOURS,
-  SET_MINUTES
+  SET_MINUTES,
+  TEMPERATURE,
+  PRESSURE
 };
 
 volatile uint8_t TIMER1_COMPA_COUNTER = 0;
@@ -123,6 +125,17 @@ unsigned long lastDisplayUpdate = 0;
 byte currentDigit = 0;
 const unsigned long MULTIPLEXER_INTERVAL = 3; // Интервал мультиплексирования, мс
 
+// BMP180
+// Температура в °C
+float temperature;
+// Давление в Паскалях
+long pressure_pa;
+// Давление в мм рт. ст.
+float pressure_mmHg;
+// Высота над уровнем моря (приближенно, стандартное давление 1013.25 гПа)
+float altitude;
+// BMP180 flag for enable update
+volatile bool flag60sec = false;  // флаг, что прошла минута
 // ===========================================================================================[SETUP]==========================================================================================
 void setup() {
   Serial.begin(9600);
@@ -157,11 +170,9 @@ void setup() {
     Rtc.SetDateTime(newTime);
   }
   if (Rtc.GetIsWriteProtected()) {
-    Serial.println("RTC was write protected, enabling writing now");
     Rtc.SetIsWriteProtected(false);
   }
   if (!Rtc.GetIsRunning()) {
-    Serial.println("RTC was not actively running, starting now");
     Rtc.SetIsRunning(true);
   }
 
@@ -177,6 +188,13 @@ void setup() {
   }
   
   Serial.println("BMP180 Success!");
+
+  readBMP180Data();
+  if (flag60sec) {
+    flag60sec = false;
+    readBMP180Data();
+    DS1302UpdateGlobalHourMinuteSecondTime();
+  }
 }
 // ===========================================================================================[SETUP]==========================================================================================
 
@@ -226,54 +244,96 @@ void loop() {
   // Мультиплексирование дисплея (приоритет)
   if (millis() - lastDisplayUpdate >= MULTIPLEXER_INTERVAL) {
     lastDisplayUpdate = millis();
-    displayTime();
+    displayModule();
     handleSetButton();
     handleIncrementButton();
   }
 }
 // ===========================================================================================[LOOP]==========================================================================================
 
-void displayTime() {
-  // Разбиваем время на цифры
-  byte digit1 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours / 10);    // Десятки часов
-  byte digit2 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours % 10);    // Единицы часов
-  byte digit3 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes / 10);  // Десятки минут
-  byte digit4 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes % 10);  // Единицы минут
-  byte digit5 = (seconds / 10); // Десятки секунд
-  byte digit6 = (seconds % 10); // Единицы секунд
+void displayModule() {
+  if (currentSetStateEnum == SystemState::TEMPERATURE) {
+    byte digit1 = 10;
+    byte digit2 = ((int)temperature / 10); 
+    byte digit3 = ((int)temperature % 10); 
+    byte digit4 = (int)(temperature * 10) % 10;  
+    byte digit5 = 10;
+    byte digit6 = 10;
+    byte digit7 = 0b00000111;
+    byte digit8 = 0b00110001;
 
-  byte imageClockLeftSymbol = imageClockLeftPatterns[currentImageClockDigit];
-  byte imageClockRightSymbol = imageClockRightPatterns[currentImageClockDigit];
+    // Показываем одну цифру за раз
+    switch (currentDigit) {
+      case 0:
+        showDigit(0, digit1, false); // DIGIT1, без точки
+        break;
+      case 1:
+        showDigit(1, digit2, false); // DIGIT2, с мигающей точкой
+        break;
+      case 2:
+        showDigit(2, digit3, true); // DIGIT3, без точки
+        break;
+      case 3:
+        showDigit(3, digit4, false); // DIGIT4, без точки
+        break;
+      case 4:
+        showDigit(4, digit5, false); // DIGIT5, без точки
+        break;
+      case 5:
+        showDigit(5, digit6, false); // DIGIT6, без точки
+        break;
+      case 6:
+        showSymbol(6, digit7); // IMAGE
+        break;
+      case 7:
+        showSymbol(7, digit8); // IMAGE
+        break;
+    }
+  } else {
+    // Разбиваем время на цифры
+    byte digit1 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours / 10);    // Десятки часов
+    byte digit2 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours % 10);    // Единицы часов
+    byte digit3 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes / 10);  // Десятки минут
+    byte digit4 = (currentSetStateEnum == SystemState::SET_MINUTES && trueFalseState) ? 10 : (minutes % 10);  // Единицы минут
+    byte digit5 = (seconds / 10); // Десятки секунд
+    byte digit6 = (seconds % 10); // Единицы секунд
 
-  // Определяем, показывать ли точку (мигание каждую секунду)
-  bool showDot = (seconds % 2 == 0); // Точка горит на чётных секундах
+    byte digit7 = imageClockLeftPatterns[currentImageClockDigit];
+    byte digit8 = imageClockRightPatterns[currentImageClockDigit];
 
-  // Показываем одну цифру за раз
-  switch (currentDigit) {
-    case 0:
-      showDigit(0, digit1, false); // DIGIT1, без точки
-      break;
-    case 1:
-      showDigit(1, digit2, showDot); // DIGIT2, с мигающей точкой
-      break;
-    case 2:
-      showDigit(2, digit3, false); // DIGIT3, без точки
-      break;
-    case 3:
-      showDigit(3, digit4, false); // DIGIT4, без точки
-      break;
-    case 4:
-      showDigit(4, digit5, false); // DIGIT5, без точки
-      break;
-    case 5:
-      showDigit(5, digit6, false); // DIGIT6, без точки
-      break;
-    case 6:
-      showImage(6, imageClockLeftSymbol); // IMAGE
-      break;
-    case 7:
-      showImage(7, imageClockRightSymbol); // IMAGE
-      break;
+    // Определяем, показывать ли точку (мигание каждую секунду)
+    bool showDot = (seconds % 2 == 0); // Точка горит на чётных секундах
+
+    // Показываем одну цифру за раз
+    switch (currentDigit) {
+      case 0:
+        showDigit(0, digit1, false); // DIGIT1, без точки
+        break;
+      case 1:
+        showDigit(1, digit2, showDot); // DIGIT2, с мигающей точкой
+        break;
+      case 2:
+        showDigit(2, digit3, false); // DIGIT3, без точки
+        break;
+      case 3:
+        showDigit(3, digit4, false); // DIGIT4, без точки
+        break;
+      case 4:
+        showDigit(4, digit5, false); // DIGIT5, без точки
+        break;
+      case 5:
+        showDigit(5, digit6, false); // DIGIT6, без точки
+        break;
+      case 6:
+        showSymbol(6, digit7); // IMAGE
+        break;
+      case 7:
+        showSymbol(7, digit8); // IMAGE
+        break;
+    }
+
+    // // Переключаемся на следующую цифру
+    // currentDigit = (currentDigit + 1) % 8;
   }
 
   // Переключаемся на следующую цифру
@@ -294,7 +354,7 @@ void showDigit(byte digitIndex, byte number, bool showDot) {
   digitalWrite(LATCH_PIN, HIGH);
 }
 
-void showImage(byte digitIndex, byte number) {
+void showSymbol(byte digitIndex, byte number) {
   // Выключить все цифры
   digitalWrite(LATCH_PIN, LOW);
   SPI.transfer(allDigitsOff); // Второй 74HC595: все выкл
@@ -378,6 +438,12 @@ void nextState() {
       currentSetStateEnum = SystemState::SET_MINUTES;
       break;
     case SystemState::SET_MINUTES:
+      currentSetStateEnum = SystemState::TEMPERATURE;
+      break;
+    case SystemState::TEMPERATURE:
+      currentSetStateEnum = SystemState::PRESSURE;
+      break;
+    case SystemState::PRESSURE:
       currentSetStateEnum = SystemState::NORMAL;
       break;
   }
@@ -411,5 +477,12 @@ void timer500MillSecondsFunction() {
 }
 
 void timer60SeccondsFunction() {
-  DS1302UpdateGlobalHourMinuteSecondTime();
+  flag60sec = true;
+}
+
+void readBMP180Data() {
+  temperature = bmp.readTemperature();
+  pressure_pa = bmp.readPressure();
+  pressure_mmHg = pressure_pa / 133.322f;
+  altitude = bmp.readAltitude(101325);
 }
