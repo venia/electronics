@@ -24,7 +24,8 @@ enum SystemState {
   SET_HOURS,
   SET_MINUTES,
   TEMPERATURE,
-  PRESSURE
+  PRESSURE_PA,
+  PRESSURE_HG
 };
 
 volatile uint8_t TIMER1_COMPA_COUNTER = 0;
@@ -289,6 +290,81 @@ void displayModule() {
         showSymbol(7, digit8); // IMAGE
         break;
     }
+  } else if (currentSetStateEnum == SystemState::PRESSURE_PA) {
+    // Serial.println(String("PRESSURE = ") + String(pressure_pa));
+    byte digit1 = pressure_pa / 100000;
+    byte digit2 = (pressure_pa % 100000) / 10000; 
+    byte digit3 = (pressure_pa % 10000) / 1000; 
+    byte digit4 = (pressure_pa % 1000) / 100;  
+    byte digit5 = (pressure_pa % 100) / 10;
+    byte digit6 = (pressure_pa % 10);
+    byte digit7 = 0b01110011;
+    byte digit8 = 0b01011100;
+
+    // Показываем одну цифру за раз
+    switch (currentDigit) {
+      case 0:
+        showDigit(0, digit1, false); // DIGIT1, без точки
+        break;
+      case 1:
+        showDigit(1, digit2, false); // DIGIT2, с мигающей точкой
+        break;
+      case 2:
+        showDigit(2, digit3, false); // DIGIT3, без точки
+        break;
+      case 3:
+        showDigit(3, digit4, false); // DIGIT4, без точки
+        break;
+      case 4:
+        showDigit(4, digit5, false); // DIGIT5, без точки
+        break;
+      case 5:
+        showDigit(5, digit6, false); // DIGIT6, без точки
+        break;
+      case 6:
+        showSymbol(6, digit7); // IMAGE
+        break;
+      case 7:
+        showSymbol(7, digit8); // IMAGE
+        break;
+    }
+  } else if (currentSetStateEnum == SystemState::PRESSURE_HG) {
+    byte digit1 = pressure_mmHg / 100;
+    byte digit2 = ((int)pressure_mmHg % 100) / 10; 
+    byte digit3 = ((int)pressure_mmHg % 10); 
+    byte digit4 = (int)(pressure_mmHg * 10) % 10;   
+    byte digit5 = 10;
+    byte digit6 = 10;
+    byte digit7 = 0b01110110;
+    byte digit8 = 0b00111101;
+
+    // Показываем одну цифру за раз
+    switch (currentDigit) {
+      case 0:
+        showDigit(0, digit1, false); // DIGIT1, без точки
+        break;
+      case 1:
+        showDigit(1, digit2, false); // DIGIT2, с мигающей точкой
+        break;
+      case 2:
+        showDigit(2, digit3, true); // DIGIT3, без точки
+        break;
+      case 3:
+        showDigit(3, digit4, false); // DIGIT4, без точки
+        break;
+      case 4:
+        showDigit(4, digit5, false); // DIGIT5, без точки
+        break;
+      case 5:
+        showDigit(5, digit6, false); // DIGIT6, без точки
+        break;
+      case 6:
+        showSymbol(6, digit7); // IMAGE
+        break;
+      case 7:
+        showSymbol(7, digit8); // IMAGE
+        break;
+    }
   } else {
     // Разбиваем время на цифры
     byte digit1 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours / 10);    // Десятки часов
@@ -441,9 +517,12 @@ void nextState() {
       currentSetStateEnum = SystemState::TEMPERATURE;
       break;
     case SystemState::TEMPERATURE:
-      currentSetStateEnum = SystemState::PRESSURE;
+      currentSetStateEnum = SystemState::PRESSURE_PA;
       break;
-    case SystemState::PRESSURE:
+    case SystemState::PRESSURE_PA:
+      currentSetStateEnum = SystemState::PRESSURE_HG;
+      break;
+    case SystemState::PRESSURE_HG:
       currentSetStateEnum = SystemState::NORMAL;
       break;
   }
