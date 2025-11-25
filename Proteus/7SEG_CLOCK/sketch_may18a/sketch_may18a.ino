@@ -1,6 +1,6 @@
 #include <SPI.h> // Добавляем библиотеку SPI
 #include <RtcDS1302.h>
-//#include <Adafruit_BMP085.h>
+#include <Adafruit_BMP085.h>
 
 // Пины для сдвиговых регистров 74HC595
 #define LATCH_PIN 9   // STCP (latch), можно выбрать любой пин
@@ -15,6 +15,8 @@
 
 ThreeWire myWire(K_IO_PIN, K_SCLK_PIN, K_CE_PIN); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
+
+Adafruit_BMP085 bmp;    // I2C
 
 // Определение enum для состояний
 enum SystemState {
@@ -83,6 +85,32 @@ const byte digitControl[8] = {
   0b01111111  // DIGIT8
 };
 
+const byte imageClockLeftPatterns[8] = {
+  0b00111001, // Symbol C 
+  0b00111001, // Symbol C
+  0b00111001, // Symbol C
+  0b00111001, // Symbol C
+  
+  0b00110001, 
+  0b00101001,
+  0b00011001,
+  0b00111000
+};
+
+const byte imageClockRightPatterns[8] = {
+  0b00001110,
+  0b00001101,
+  0b00001011,
+  0b00000111,
+
+  0b00001111, // Symbol Э
+  0b00001111, // Symbol Э
+  0b00001111, // Symbol Э
+  0b00001111 // Symbol Э
+};
+
+byte currentImageClockDigit = 0;
+
 // Выключение всех цифр
 const byte allDigitsOff = 0b11111111; // Все Q0-Q7=1
 
@@ -98,6 +126,9 @@ const unsigned long MULTIPLEXER_INTERVAL = 3; // Интервал мультип
 // ===========================================================================================[SETUP]==========================================================================================
 void setup() {
   Serial.begin(9600);
+
+   while (!Serial);
+
   // Timer1 configure A & B 
   noInterrupts();
   TCCR1A = 0;
@@ -139,6 +170,13 @@ void setup() {
   Serial.println(String("HOURS = ") + String(hours));
   Serial.println(String("MINUTES = ") + String(minutes));
   Serial.println(String("SECONDS = ") + String(seconds));
+
+  if (!bmp.begin()) {
+    Serial.println("Not found BMP180!");
+    while (1); // зависаем
+  }
+  
+  Serial.println("BMP180 Success!");
 }
 // ===========================================================================================[SETUP]==========================================================================================
 
@@ -204,6 +242,9 @@ void displayTime() {
   byte digit5 = (seconds / 10); // Десятки секунд
   byte digit6 = (seconds % 10); // Единицы секунд
 
+  byte imageClockLeftSymbol = imageClockLeftPatterns[currentImageClockDigit];
+  byte imageClockRightSymbol = imageClockRightPatterns[currentImageClockDigit];
+
   // Определяем, показывать ли точку (мигание каждую секунду)
   bool showDot = (seconds % 2 == 0); // Точка горит на чётных секундах
 
@@ -227,10 +268,16 @@ void displayTime() {
     case 5:
       showDigit(5, digit6, false); // DIGIT6, без точки
       break;
+    case 6:
+      showImage(6, imageClockLeftSymbol); // IMAGE
+      break;
+    case 7:
+      showImage(7, imageClockRightSymbol); // IMAGE
+      break;
   }
 
   // Переключаемся на следующую цифру
-  currentDigit = (currentDigit + 1) % 6;
+  currentDigit = (currentDigit + 1) % 8;
 }
 
 void showDigit(byte digitIndex, byte number, bool showDot) {
@@ -244,6 +291,20 @@ void showDigit(byte digitIndex, byte number, bool showDot) {
   digitalWrite(LATCH_PIN, LOW);
   SPI.transfer(digitControl[digitIndex]); // Второй 74HC595: выбор цифры
   SPI.transfer(showDot ? digitPatternsWithDot[number] : digitPatterns[number]); // Первый 74HC595: сегменты
+  digitalWrite(LATCH_PIN, HIGH);
+}
+
+void showImage(byte digitIndex, byte number) {
+  // Выключить все цифры
+  digitalWrite(LATCH_PIN, LOW);
+  SPI.transfer(allDigitsOff); // Второй 74HC595: все выкл
+  SPI.transfer(0x00);        // Первый 74HC595: сегменты выкл
+  digitalWrite(LATCH_PIN, HIGH);
+
+  // Включить нужную цифру
+  digitalWrite(LATCH_PIN, LOW);
+  SPI.transfer(digitControl[digitIndex]); // Второй 74HC595: выбор цифры
+  SPI.transfer(number); // Первый 74HC595: сегменты
   digitalWrite(LATCH_PIN, HIGH);
 }
 
@@ -322,6 +383,13 @@ void nextState() {
   }
 }
 
+void incrementCurrentImageClockDigit() {
+  currentImageClockDigit++;
+  if (currentImageClockDigit >= 8) {
+    currentImageClockDigit = 0;
+  }
+}
+
 void DS1302UpdateGlobalHourMinuteSecondTime() {
   RtcDateTime now = Rtc.GetDateTime();
   hours = now.Hour();
@@ -331,6 +399,7 @@ void DS1302UpdateGlobalHourMinuteSecondTime() {
 
 void timer250MillSecondsFunction() {
   trueFalseState = !trueFalseState; // Переключаем состояние
+  incrementCurrentImageClockDigit(); // Поворачиваем рисунок часов
 }
 
 void timer10SeccondsFunction() {
