@@ -1,4 +1,5 @@
-#include <SPI.h> // Добавляем библиотеку SPI
+#include <SPI.h> 
+#include <RDA5807.h>
 #include <RtcDS1302.h>
 #include <Adafruit_BMP085.h>
 
@@ -18,6 +19,8 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 
 Adafruit_BMP085 bmp;    // I2C
 
+RDA5807 rx; // Radio
+
 // Определение enum для состояний
 enum SystemState {
   NORMAL,
@@ -25,7 +28,8 @@ enum SystemState {
   SET_MINUTES,
   TEMPERATURE,
   PRESSURE_PA,
-  PRESSURE_HG
+  PRESSURE_HG,
+  RADIO
 };
 
 volatile uint8_t TIMER1_COMPA_COUNTER = 0;
@@ -124,7 +128,7 @@ int hours = 12, minutes = 0, seconds = 0;
 // Переменные для мультиплексирования
 unsigned long lastDisplayUpdate = 0;
 byte currentDigit = 0;
-const unsigned long MULTIPLEXER_INTERVAL = 3; // Интервал мультиплексирования, мс
+const unsigned long MULTIPLEXER_INTERVAL = 2; // Интервал мультиплексирования, мс
 
 // BMP180
 // Температура в °C
@@ -196,6 +200,15 @@ void setup() {
     readBMP180Data();
     DS1302UpdateGlobalHourMinuteSecondTime();
   }
+
+  // Radio
+  rx.setup();                   // Инициализация
+  rx.setSpace(0);               // Шаг 100 кГц (0 = 100 кГц для Европы/России; 1 = 200 кГц для США)
+  rx.setBand(0);                // Диапазон 87–108 МГц (0 = стандартный)
+  rx.setFrequency(10100);       // Старт с 87.5 МГц (8750 = 87.5 * 100)
+  rx.setVolume(15);             // Громкость 0–15
+  rx.setSeekThreshold(30);      // Порог поиска (выше = только сильные станции)
+  rx.setMute(false);
 }
 // ===========================================================================================[SETUP]==========================================================================================
 
@@ -253,7 +266,48 @@ void loop() {
 // ===========================================================================================[LOOP]==========================================================================================
 
 void displayModule() {
-  if (currentSetStateEnum == SystemState::TEMPERATURE) {
+  if (currentSetStateEnum == SystemState::RADIO) {
+    uint16_t freq = rx.getFrequency();      // Частота в единицах 10 кГц
+    float freqMHz = freq / 100.0;
+
+    byte digit1 = freqMHz / 100;
+    byte digit2 = ((int)freqMHz % 100) / 10; 
+    byte digit3 = ((int)freqMHz % 10); 
+    byte digit4 = (int)(freqMHz * 10) % 10;   
+    byte digit5 = 10;
+    byte digit6 = 10;
+    byte digit7 = 0b01110111;
+    byte digit8 = 0b01011100;
+
+    // Показываем одну цифру за раз
+    switch (currentDigit) {
+      case 0:
+        showDigit(0, digit1, false); // DIGIT1, без точки
+        break;
+      case 1:
+        showDigit(1, digit2, false); // DIGIT2, с мигающей точкой
+        break;
+      case 2:
+        showDigit(2, digit3, true); // DIGIT3, без точки
+        break;
+      case 3:
+        showDigit(3, digit4, false); // DIGIT4, без точки
+        break;
+      case 4:
+        showDigit(4, digit5, false); // DIGIT5, без точки
+        break;
+      case 5:
+        showDigit(5, digit6, false); // DIGIT6, без точки
+        break;
+      case 6:
+        showSymbol(6, digit7); // IMAGE
+        break;
+      case 7:
+        showSymbol(7, digit8); // IMAGE
+        break;
+    }
+
+  } else if (currentSetStateEnum == SystemState::TEMPERATURE) {
     byte digit1 = 10;
     byte digit2 = ((int)temperature / 10); 
     byte digit3 = ((int)temperature % 10); 
@@ -502,6 +556,8 @@ void incrementHoursOrMinutes() {
     }
     RtcDateTime newTime = RtcDateTime(now.Year(), now.Month(), now.Day(), now.Hour(), minutes, now.Second());
     Rtc.SetDateTime(newTime);
+  } else if (currentSetStateEnum == SystemState::RADIO) {
+    rx.seek(RDA_SEEK_WRAP, RDA_SEEK_UP);  // Поиск вверх с зацикливанием (RDA_SEEK_WRAP = 0, RDA_SEEK_UP = 1)
   }
 }
 
@@ -523,6 +579,9 @@ void nextState() {
       currentSetStateEnum = SystemState::PRESSURE_HG;
       break;
     case SystemState::PRESSURE_HG:
+      currentSetStateEnum = SystemState::RADIO;
+      break;
+    case SystemState::RADIO:
       currentSetStateEnum = SystemState::NORMAL;
       break;
   }
