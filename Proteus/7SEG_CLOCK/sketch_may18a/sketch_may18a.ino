@@ -208,7 +208,7 @@ void setup() {
   rx.setFrequency(10100);       // Старт с 87.5 МГц (8750 = 87.5 * 100)
   rx.setVolume(15);             // Громкость 0–15
   rx.setSeekThreshold(30);      // Порог поиска (выше = только сильные станции)
-  rx.setMute(false);
+  radioOn();
 }
 // ===========================================================================================[SETUP]==========================================================================================
 
@@ -266,7 +266,9 @@ void loop() {
 // ===========================================================================================[LOOP]==========================================================================================
 
 void displayModule() {
+  radioOff();
   if (currentSetStateEnum == SystemState::RADIO) {
+    radioOn();
     uint16_t freq = rx.getFrequency();      // Частота в единицах 10 кГц
     float freqMHz = freq / 100.0;
 
@@ -623,4 +625,12 @@ void readBMP180Data() {
   pressure_pa = bmp.readPressure();
   pressure_mmHg = pressure_pa / 133.322f;
   altitude = bmp.readAltitude(101325);
+}
+
+void radioOn() {
+  rx.setMute(true);
+}
+
+void radioOff() {
+  rx.setMute(false);
 }
