@@ -29,7 +29,8 @@ enum SystemState {
   TEMPERATURE,
   PRESSURE_PA,
   PRESSURE_HG,
-  RADIO
+  RADIO,
+  RADIO_VOLUME
 };
 
 volatile uint8_t TIMER1_COMPA_COUNTER = 0;
@@ -144,8 +145,10 @@ volatile bool flag60sec = false;  // флаг, что прошла минута
 
 // Radio
 float currentRadioFreq = 100.8;  // Текущая частота для отображения (начальная)
-unsigned long lastFreqUpdate = 0;  // Время последнего обновления частоты
-const unsigned long FREQ_UPDATE_INTERVAL = 5000;  // Обновлять каждые 5000 мс (достаточно)
+// unsigned long lastFreqUpdate = 0;  // Время последнего обновления частоты
+// const unsigned long FREQ_UPDATE_INTERVAL = 5000;  // Обновлять каждые 5000 мс (достаточно)
+volatile bool radioFreqON = false;  // Radio ON/OFF
+int radioVolume = 6;
 // ===========================================================================================[SETUP]==========================================================================================
 void setup() {
   Serial.begin(9600);
@@ -308,7 +311,45 @@ void displayModule() {
         showSymbol(7, digit8); // IMAGE
         break;
     }
+  } else if (currentSetStateEnum == SystemState::RADIO_VOLUME) {
+    radioOn();
 
+    byte digit1 = 10;
+    byte digit2 = ((int)radioVolume % 100) / 10; 
+    byte digit3 = ((int)radioVolume % 10); 
+    byte digit4 = 10;   
+    byte digit5 = 10;
+    byte digit6 = 10;
+    byte digit7 = 0b00111110;
+    byte digit8 = 0b01011100;
+
+    // Показываем одну цифру за раз
+    switch (currentDigit) {
+      case 0:
+        showDigit(0, digit1, false); // DIGIT1, без точки
+        break;
+      case 1:
+        showDigit(1, digit2, false); // DIGIT2, с мигающей точкой
+        break;
+      case 2:
+        showDigit(2, digit3, false); // DIGIT3, без точки
+        break;
+      case 3:
+        showDigit(3, digit4, false); // DIGIT4, без точки
+        break;
+      case 4:
+        showDigit(4, digit5, false); // DIGIT5, без точки
+        break;
+      case 5:
+        showDigit(5, digit6, false); // DIGIT6, без точки
+        break;
+      case 6:
+        showSymbol(6, digit7); // IMAGE
+        break;
+      case 7:
+        showSymbol(7, digit8); // IMAGE
+        break;
+    }
   } else if (currentSetStateEnum == SystemState::TEMPERATURE) {
     radioOff();
 
@@ -569,6 +610,12 @@ void incrementHoursOrMinutes() {
     rx.seek(RDA_SEEK_WRAP, RDA_SEEK_UP, showStatus);
 
     currentDigit = 0;  // Сброс, чтобы сразу показать новые цифры
+  } else if(currentSetStateEnum == SystemState::RADIO_VOLUME) {
+    radioVolume++;
+    if (radioVolume > 15) {
+      radioVolume = 1;
+    }
+    rx.setVolume(radioVolume);
   }
 }
 
@@ -593,6 +640,9 @@ void nextState() {
       currentSetStateEnum = SystemState::RADIO;
       break;
     case SystemState::RADIO:
+      currentSetStateEnum = SystemState::RADIO_VOLUME;
+      break;
+    case SystemState::RADIO_VOLUME:
       currentSetStateEnum = SystemState::NORMAL;
       break;
   }
@@ -637,23 +687,32 @@ void readBMP180Data() {
 }
 
 void radioOn() {
-  rx.powerUp();
-  rx.setVolume(6);   // Максимальная громкость (можно уменьшить до 10-12, если слишком громко)
+  if (!radioFreqON) {
+    rx.powerUp();
+    rx.setVolume(radioVolume);
+    rx.setMono(true);
+    rx.setBass(true);
+    rx.setMute(false);
+    radioFreqON = true;
+  }
 }
 
 void radioOff() {
-  rx.powerDown();
-  rx.setVolume(0);
+  if (radioFreqON) {
+    rx.powerDown();
+    rx.setVolume(0);
+    radioFreqON = false;
+  }
 }
 
 // Show current frequency
 void showStatus()
 {
-  if (currentSetStateEnum == SystemState::RADIO) {
-    if (millis() - lastFreqUpdate >= FREQ_UPDATE_INTERVAL) {
-      lastFreqUpdate = millis();
+  // if (currentSetStateEnum == SystemState::RADIO) {
+  //   if (millis() - lastFreqUpdate >= FREQ_UPDATE_INTERVAL) {
+  //     lastFreqUpdate = millis();
       uint16_t freq = rx.getFrequency();
       currentRadioFreq = freq / 100.0;  // Преобразуем в МГц (например, 101.5)
-    }
-  }
+  //   }
+  // }
 }
