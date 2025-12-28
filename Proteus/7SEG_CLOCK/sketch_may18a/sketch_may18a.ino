@@ -19,7 +19,7 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 
 Adafruit_BMP085 bmp;    // I2C
 
-RDA5807 rx; // Radio
+RDA5807 rx; // Radio I2C
 
 // Определение enum для состояний
 enum SystemState {
@@ -141,6 +141,11 @@ float pressure_mmHg;
 float altitude;
 // BMP180 flag for enable update
 volatile bool flag60sec = false;  // флаг, что прошла минута
+
+// Radio
+float currentRadioFreq = 100.8;  // Текущая частота для отображения (начальная)
+unsigned long lastFreqUpdate = 0;  // Время последнего обновления частоты
+const unsigned long FREQ_UPDATE_INTERVAL = 5000;  // Обновлять каждые 5000 мс (достаточно)
 // ===========================================================================================[SETUP]==========================================================================================
 void setup() {
   Serial.begin(9600);
@@ -203,11 +208,9 @@ void setup() {
 
   // Radio
   rx.setup();                   // Инициализация
-  rx.setSpace(0);               // Шаг 100 кГц (0 = 100 кГц для Европы/России; 1 = 200 кГц для США)
-  rx.setBand(0);                // Диапазон 87–108 МГц (0 = стандартный)
-  rx.setFrequency(10100);       // Старт с 87.5 МГц (8750 = 87.5 * 100)
-  rx.setVolume(15);             // Громкость 0–15
-  rx.setSeekThreshold(30);      // Порог поиска (выше = только сильные станции)
+  rx.setFrequency(currentRadioFreq * 100);       // Старт с 87.5 МГц (8750 = 87.5 * 100)
+  rx.setMono(true);
+  rx.setMute(false);
   radioOn();
 }
 // ===========================================================================================[SETUP]==========================================================================================
@@ -266,16 +269,13 @@ void loop() {
 // ===========================================================================================[LOOP]==========================================================================================
 
 void displayModule() {
-  radioOff();
   if (currentSetStateEnum == SystemState::RADIO) {
     radioOn();
-    uint16_t freq = rx.getFrequency();      // Частота в единицах 10 кГц
-    float freqMHz = freq / 100.0;
 
-    byte digit1 = freqMHz / 100;
-    byte digit2 = ((int)freqMHz % 100) / 10; 
-    byte digit3 = ((int)freqMHz % 10); 
-    byte digit4 = (int)(freqMHz * 10) % 10;   
+    byte digit1 = currentRadioFreq / 100;
+    byte digit2 = ((int)currentRadioFreq % 100) / 10; 
+    byte digit3 = ((int)currentRadioFreq % 10); 
+    byte digit4 = (int)(currentRadioFreq * 10) % 10;   
     byte digit5 = 10;
     byte digit6 = 10;
     byte digit7 = 0b01110111;
@@ -310,6 +310,8 @@ void displayModule() {
     }
 
   } else if (currentSetStateEnum == SystemState::TEMPERATURE) {
+    radioOff();
+
     byte digit1 = 10;
     byte digit2 = ((int)temperature / 10); 
     byte digit3 = ((int)temperature % 10); 
@@ -347,7 +349,8 @@ void displayModule() {
         break;
     }
   } else if (currentSetStateEnum == SystemState::PRESSURE_PA) {
-    // Serial.println(String("PRESSURE = ") + String(pressure_pa));
+    radioOff();
+
     byte digit1 = pressure_pa / 100000;
     byte digit2 = (pressure_pa % 100000) / 10000; 
     byte digit3 = (pressure_pa % 10000) / 1000; 
@@ -385,6 +388,8 @@ void displayModule() {
         break;
     }
   } else if (currentSetStateEnum == SystemState::PRESSURE_HG) {
+    radioOff();
+
     byte digit1 = pressure_mmHg / 100;
     byte digit2 = ((int)pressure_mmHg % 100) / 10; 
     byte digit3 = ((int)pressure_mmHg % 10); 
@@ -422,6 +427,8 @@ void displayModule() {
         break;
     }
   } else {
+    radioOff();
+
     // Разбиваем время на цифры
     byte digit1 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours / 10);    // Десятки часов
     byte digit2 = (currentSetStateEnum == SystemState::SET_HOURS && trueFalseState) ? 10 : (hours % 10);    // Единицы часов
@@ -559,7 +566,9 @@ void incrementHoursOrMinutes() {
     RtcDateTime newTime = RtcDateTime(now.Year(), now.Month(), now.Day(), now.Hour(), minutes, now.Second());
     Rtc.SetDateTime(newTime);
   } else if (currentSetStateEnum == SystemState::RADIO) {
-    rx.seek(RDA_SEEK_WRAP, RDA_SEEK_UP);  // Поиск вверх с зацикливанием (RDA_SEEK_WRAP = 0, RDA_SEEK_UP = 1)
+    rx.seek(RDA_SEEK_WRAP, RDA_SEEK_UP, showStatus);
+
+    currentDigit = 0;  // Сброс, чтобы сразу показать новые цифры
   }
 }
 
@@ -628,9 +637,23 @@ void readBMP180Data() {
 }
 
 void radioOn() {
-  rx.setMute(true);
+  rx.powerUp();
+  rx.setVolume(6);   // Максимальная громкость (можно уменьшить до 10-12, если слишком громко)
 }
 
 void radioOff() {
-  rx.setMute(false);
+  rx.powerDown();
+  rx.setVolume(0);
+}
+
+// Show current frequency
+void showStatus()
+{
+  if (currentSetStateEnum == SystemState::RADIO) {
+    if (millis() - lastFreqUpdate >= FREQ_UPDATE_INTERVAL) {
+      lastFreqUpdate = millis();
+      uint16_t freq = rx.getFrequency();
+      currentRadioFreq = freq / 100.0;  // Преобразуем в МГц (например, 101.5)
+    }
+  }
 }
