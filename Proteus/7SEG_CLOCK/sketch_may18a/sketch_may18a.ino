@@ -691,8 +691,12 @@ void radioOn() {
     rx.powerUp();
     rx.setVolume(radioVolume);
     rx.setMono(true);
-    rx.setBass(true);
     rx.setMute(false);
+
+    rx.setBass(true);
+    // rx.setSoftmute(true);
+    // rx.setLnaPortSel(1); 
+    // rx.setLnaIcSel(1);
     radioFreqON = true;
   }
 }
@@ -708,11 +712,6 @@ void radioOff() {
 // Show current frequency
 void showStatus()
 {
-  // if (currentSetStateEnum == SystemState::RADIO) {
-  //   if (millis() - lastFreqUpdate >= FREQ_UPDATE_INTERVAL) {
-  //     lastFreqUpdate = millis();
-      uint16_t freq = rx.getFrequency();
-      currentRadioFreq = freq / 100.0;  // Преобразуем в МГц (например, 101.5)
-  //   }
-  // }
+  uint16_t freq = rx.getFrequency();
+  currentRadioFreq = freq / 100.0;  // Преобразуем в МГц (например, 101.5)
 }
