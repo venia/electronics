@@ -1,0 +1,203 @@
+;Proteus Design Interchange Format
+
+(PDIF
+  (vendor "Labcenter Electronics")
+  (version 1 0)
+  (library
+    (part "LM358M"
+      (family "ANA")
+      (package "SOIC127P599X1758N")
+      (description "2-Channel,_1MHz,_industry_standard,_32V_op_amp_8-SOIC_0_to_70")
+      (attribute "PKG_TYPE" "SOIC127P599X1758N")
+      (attribute "MF" "Texas_Instruments")
+      (attribute "PACKAGE" "SOIC-8_Texas_Instruments")
+      (attribute "PRICE" "None")
+      (attribute "SNAPEDA_LINK" "https://www.snapeda.com/parts/LM358M/Texas+Instruments/view-part/?ref=snap")
+      (attribute "MP" "LM358M")
+      (attribute "AVAILABILITY" "In_Stock")
+      (attribute "CHECK_PRICES" "https://www.snapeda.com/parts/LM358M/Texas+Instruments/view-part/?ref=eda")
+      (gate
+        (swap 1)
+        (symbol "LM358M")
+        (pin "GND" 4 (type PP))
+        (pin "NEGA" 2 (type IP))
+        (pin "NEGB" 6 (type IP))
+        (pin "OUTA" 1 (type OP))
+        (pin "OUTB" 7 (type OP))
+        (pin "POSA" 3 (type IP))
+        (pin "POSB" 5 (type IP))
+        (pin "V+" 8 (type PP))
+      )
+    )
+    (symbol "LM358M"
+      (units THOU)
+      (graphic
+        (stroke 1)
+        (path (pt -500 500) (pt 500 500) (pt 500 -500) (pt -500 -500) (pt -500 500) (closed))
+      )
+      (terminal
+        (body (symbol "PIN_R180_U_L200") (pt 700.0 -400.0) (rot 0) (mir 0) (visible true))
+        (name (pt -239.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R0_U_L200") (pt -700.0 200.0) (rot 0) (mir 0) (visible true))
+        (name (pt 239.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R0_U_L200") (pt -700.0 100.0) (rot 0) (mir 0) (visible true))
+        (name (pt 239.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R180_U_L200") (pt 700.0 200.0) (rot 0) (mir 0) (visible true))
+        (name (pt -239.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R180_U_L200") (pt 700.0 100.0) (rot 0) (mir 0) (visible true))
+        (name (pt -239.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R0_U_L200") (pt -700.0 -0.0) (rot 0) (mir 0) (visible true))
+        (name (pt 239.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R0_U_L200") (pt -700.0 -100.0) (rot 0) (mir 0) (visible true))
+        (name (pt 239.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE LEFT) (visible true))
+      )
+      (terminal
+        (body (symbol "PIN_R180_U_L200") (pt 700.0 400.0) (rot 0) (mir 0) (visible true))
+        (name (pt -239.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+        (number (pt -39.37 0.0) (rot 0) (just MIDDLE RIGHT) (visible true))
+      )
+    )
+    (symbol "PIN_R180_U_L200"
+      (units THOU)
+      (graphic
+        (stroke 6.5)
+        (path (pt 0.0 0.0) (pt -200.0 0.0))
+      )
+    )
+    (symbol "PIN_R0_U_L200"
+      (units THOU)
+      (graphic
+        (stroke 6.5)
+        (path (pt 0.0 0.0) (pt 200.0 0.0))
+      )
+    )
+    (package "SOIC127P599X1758N"
+      (units THOU)
+      (layer TSLK
+        (graphic
+          (stroke 7.87)
+          (circle (pt -162.99 90.75) (pt -155.12 90.75))
+        )
+        (graphic
+          (stroke 5.0)
+          (path (pt -76.77 99.41) (pt 76.77 99.41))
+        )
+        (graphic
+          (stroke 5.0)
+          (path (pt -76.77 -99.41) (pt 76.77 -99.41))
+        )
+      )
+      (layer TASM
+        (graphic
+          (stroke 7.87)
+          (circle (pt -162.99 90.75) (pt -155.12 90.75))
+        )
+        (graphic
+          (stroke 5.0)
+          (path (pt -76.77 96.56) (pt 76.77 96.56))
+        )
+        (graphic
+          (stroke 5.0)
+          (path (pt -76.77 -96.56) (pt 76.77 -96.56))
+        )
+        (graphic
+          (stroke 5.0)
+          (path (pt -76.77 96.56) (pt -76.77 -96.56))
+        )
+        (graphic
+          (stroke 5.0)
+          (path (pt 76.77 96.56) (pt 76.77 -96.56))
+        )
+      )
+      (layer OCCA
+        (graphic
+          (stroke 1.97)
+          (path (pt -145.87 106.4) (pt 145.87 106.4))
+        )
+        (graphic
+          (stroke 1.97)
+          (path (pt -145.87 -106.4) (pt 145.87 -106.4))
+        )
+        (graphic
+          (stroke 1.97)
+          (path (pt -145.87 106.4) (pt -145.87 -106.4))
+        )
+        (graphic
+          (stroke 1.97)
+          (path (pt 145.87 106.4) (pt 145.87 -106.4))
+        )
+      )
+      (leg 4 (pt -97.24 -75) (padstack 1))
+      (leg 2 (pt -97.24 25) (padstack 2))
+      (leg 6 (pt 97.24 -25) (padstack 3))
+      (leg 1 (pt -97.24 75) (padstack 4))
+      (leg 7 (pt 97.24 25) (padstack 5))
+      (leg 3 (pt -97.24 -25) (padstack 6))
+      (leg 5 (pt 97.24 -75) (padstack 7))
+      (leg 8 (pt 97.24 75) (padstack 8))
+      (padstack 1
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 2
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 3
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 4
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 5
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 6
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 7
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (padstack 8
+        (pad (layer TCOP) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TRES) (rectf 23.62 77.56 0 2.95 0))
+        (pad (layer TPST) (rectf 23.62 77.56 0 2.95 0))
+      )
+      (model LM358M.step
+        (euler 0 0 0)
+        (offset 0 0 0)
+      )
+    )
+  )
+)
