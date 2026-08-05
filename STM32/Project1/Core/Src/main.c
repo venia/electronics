@@ -361,7 +361,7 @@ static void MX_GPIO_Init(void)
 
   GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP; // кнопка замыкает на GND, нужен pull-up для стабильного HIGH когда не нажата
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN; // кнопка замыкает на VDD (активный HIGH), нужен pulldown для стабильного LOW когда не нажата
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /* USER CODE END MX_GPIO_Init_2 */
