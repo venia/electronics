@@ -154,6 +154,12 @@ SECTIONS
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
   } >RAM_D1
+  
+  .TouchGFX_Framebuffer (NOLOAD) :
+  {
+    . = ALIGN(4);
+    *(.TouchGFX_Framebuffer)
+  } >RAM_D1
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
