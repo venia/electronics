@@ -22,6 +22,7 @@
 
 #include <TouchGFXHAL.hpp>
 #include <MyButtonController.hpp>
+#include <touchgfx/hal/OSWrappers.hpp>
 
 /* USER CODE BEGIN TouchGFXHAL.cpp */
 
@@ -31,6 +32,12 @@ extern "C" {
 }
 
 using namespace touchgfx;
+
+extern "C" void touchgfx_tick(void)
+{
+    HAL::getInstance()->vSync();
+    OSWrappers::signalVSync();
+}
 
 void TouchGFXHAL::initialize()
 {
@@ -95,6 +102,22 @@ void TouchGFXHAL::flushFrameBuffer(const touchgfx::Rect& rect)
     // use advanceFrameBufferToRect(uint8_t* fbPtr, const touchgfx::Rect& rect)
     // defined in TouchGFXGeneratedHAL.cpp
 
+#define DIAG_SOLID_FILL 1  // ВРЕМЕННО: 1 = игнорировать framebuffer, залить rect одним цветом
+
+#if DIAG_SOLID_FILL
+	ST7735_SetAddrWindow(rect.x, rect.y, rect.x + rect.width - 1, rect.y + rect.height - 1);
+
+	static uint8_t lineBuf[160 * 2];
+	for (int col = 0; col < rect.width; col++)
+	{
+	    lineBuf[col * 2]     = 0x07; // RGB565 зелёный, старший байт
+	    lineBuf[col * 2 + 1] = 0xE0; // младший байт
+	}
+	for (int row = 0; row < rect.height; row++)
+	{
+	    LCD_WriteData(lineBuf, rect.width * 2);
+	}
+#else
 	const uint16_t screenWidth = 160;
 	    uint16_t* fb = getTFTFrameBuffer();
 
@@ -112,6 +135,7 @@ void TouchGFXHAL::flushFrameBuffer(const touchgfx::Rect& rect)
 	        }
 	        LCD_WriteData(lineBuf, rect.width * 2);
 	    }
+#endif
 
 	    TouchGFXGeneratedHAL::flushFrameBuffer(rect);
 }

@@ -3,10 +3,10 @@
 ../Core/Src/main.c:74:13:LCD_WriteData8	1
 ../Core/Src/main.c:76:13:ST7735_Init	1
 ../Core/Src/main.c:113:6:ST7735_SetAddrWindow	1
-../Core/Src/main.c:146:5:main	1
-../Core/Src/main.c:197:6:SystemClock_Config	4
-../Core/Src/main.c:257:13:MX_CRC_Init	2
-../Core/Src/main.c:288:13:MX_SPI4_Init	2
-../Core/Src/main.c:336:13:MX_GPIO_Init	1
-../Core/Src/main.c:368:6:MPU_Config	1
-../Core/Src/main.c:399:6:Error_Handler	1
+../Core/Src/main.c:146:5:main	3
+../Core/Src/main.c:211:6:SystemClock_Config	4
+../Core/Src/main.c:271:13:MX_CRC_Init	2
+../Core/Src/main.c:302:13:MX_SPI4_Init	2
+../Core/Src/main.c:350:13:MX_GPIO_Init	1
+../Core/Src/main.c:382:6:MPU_Config	1
+../Core/Src/main.c:413:6:Error_Handler	1

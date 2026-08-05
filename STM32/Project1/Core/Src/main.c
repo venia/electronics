@@ -176,6 +176,20 @@ int main(void)
   MX_TouchGFX_Init();
   /* USER CODE BEGIN 2 */
   ST7735_Init();
+
+  // ДИАГНОСТИКА: прямая заливка всего экрана, полностью в обход TouchGFX
+  {
+      ST7735_SetAddrWindow(0, 0, 159, 79);
+      static uint8_t fillBuf[160 * 2];
+      for (int i = 0; i < 160; i++) {
+          fillBuf[i * 2]     = 0xF8; // RGB565 красный, старший байт
+          fillBuf[i * 2 + 1] = 0x00; // младший байт
+      }
+      for (int row = 0; row < 80; row++) {
+          LCD_WriteData(fillBuf, sizeof(fillBuf));
+      }
+      HAL_Delay(3000); // держим цвет 3 секунды, чтобы точно успеть увидеть до старта TouchGFX
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
