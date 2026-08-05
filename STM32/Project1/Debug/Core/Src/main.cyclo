@@ -8,5 +8,5 @@
 ../Core/Src/main.c:257:13:MX_CRC_Init	2
 ../Core/Src/main.c:288:13:MX_SPI4_Init	2
 ../Core/Src/main.c:336:13:MX_GPIO_Init	1
-../Core/Src/main.c:368:6:MPU_Config	1
-../Core/Src/main.c:399:6:Error_Handler	1
+../Core/Src/main.c:376:6:MPU_Config	1
+../Core/Src/main.c:407:6:Error_Handler	1
