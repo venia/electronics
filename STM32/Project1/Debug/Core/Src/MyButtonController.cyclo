@@ -1,0 +1,7 @@
+../Middlewares/ST/touchgfx/framework/include/platform/driver/button/ButtonController.hpp:30:13:touchgfx::ButtonController::~ButtonController()	1
+../Middlewares/ST/touchgfx/framework/include/platform/driver/button/ButtonController.hpp:30:13:virtual touchgfx::ButtonController::~ButtonController()	1
+../Middlewares/ST/touchgfx/framework/include/platform/driver/button/ButtonController.hpp:48:18:virtual void touchgfx::ButtonController::reset()	1
+../Core/Src/MyButtonController.cpp:5:6:virtual void MyButtonController::init()	1
+../Core/Src/MyButtonController.cpp:10:6:virtual bool MyButtonController::sample(uint8_t&)	5
+../Core/Inc/MyButtonController.hpp:6:7:MyButtonController::~MyButtonController()	1
+../Core/Inc/MyButtonController.hpp:6:7:virtual MyButtonController::~MyButtonController()	1

@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "app_touchgfx.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -41,6 +42,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+CRC_HandleTypeDef hcrc;
+
 SPI_HandleTypeDef hspi4;
 
 /* USER CODE BEGIN PV */
@@ -61,7 +64,7 @@ static void LCD_WriteCmd(uint8_t cmd) {
     LCD_CS_HIGH();
 }
 
-static void LCD_WriteData(uint8_t *data, uint16_t len) {
+void LCD_WriteData(uint8_t *data, uint16_t len) {
     LCD_DC_DATA();
     LCD_CS_LOW();
     HAL_SPI_Transmit(&hspi4, data, len, HAL_MAX_DELAY);
@@ -107,7 +110,7 @@ static void ST7735_Init(void) {
     HAL_GPIO_WritePin(LCD_BL_GPIO_Port, LCD_BL_Pin, GPIO_PIN_RESET); // подсветка ON (активный low)
 }
 
-static void ST7735_SetAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
+void ST7735_SetAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
     uint8_t buf[4];
     // экран физически 160x80, но с offset x+1, y+26 (особенность этой матрицы)
     buf[0]=0x00; buf[1]=x0+1; buf[2]=0x00; buf[3]=x1+1;
@@ -119,43 +122,6 @@ static void ST7735_SetAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
     LCD_WriteCmd(0x2C); // RAMWR - начинаем писать пиксели
 }
 
-static void ST7735_FillScreen(uint16_t color) {
-    ST7735_SetAddrWindow(0, 0, 159, 79);
-    uint8_t hi = color >> 8, lo = color & 0xFF;
-    uint8_t line[160*2];
-    for (int i = 0; i < 160; i++) { line[i*2]=hi; line[i*2+1]=lo; }
-    LCD_DC_DATA();
-    LCD_CS_LOW();
-    for (int y = 0; y < 80; y++) HAL_SPI_Transmit(&hspi4, line, sizeof(line), HAL_MAX_DELAY);
-    LCD_CS_HIGH();
-}
-
-// компактный шрифт 5x7, нужные буквы для "HELLO"
-static const uint8_t font5x7[5][5] = {
-    {0x00,0x00,0x00,0x00,0x00}, // space
-    {0x7F,0x08,0x08,0x08,0x7F}, // H
-    {0x7F,0x49,0x49,0x49,0x41}, // E
-    {0x7F,0x40,0x40,0x40,0x40}, // L
-    {0x3E,0x41,0x41,0x41,0x3E}, // O
-};
-
-static void ST7735_DrawChar(uint16_t x, uint16_t y, uint8_t idx, uint16_t color, uint16_t bg, uint8_t scale) {
-    for (uint8_t col = 0; col < 5; col++) {
-        uint8_t line = font5x7[idx][col];
-        for (uint8_t row = 0; row < 7; row++) {
-            uint16_t c = (line & (1 << row)) ? color : bg;
-            ST7735_SetAddrWindow(x + col*scale, y + row*scale,
-                                  x + col*scale + scale - 1, y + row*scale + scale - 1);
-            uint8_t hi = c >> 8, lo = c & 0xFF;
-            uint8_t px[2] = {hi, lo};
-            LCD_DC_DATA();
-            LCD_CS_LOW();
-            for (int p = 0; p < scale*scale; p++) HAL_SPI_Transmit(&hspi4, px, 2, HAL_MAX_DELAY);
-            LCD_CS_HIGH();
-        }
-    }
-}
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -163,6 +129,7 @@ void SystemClock_Config(void);
 static void MPU_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI4_Init(void);
+static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -205,16 +172,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI4_Init();
+  MX_CRC_Init();
+  MX_TouchGFX_Init();
   /* USER CODE BEGIN 2 */
   ST7735_Init();
-  ST7735_FillScreen(COLOR_BLACK);
-
-  // "HELLO" — индексы в font5x7: space=0,H=1,E=2,L=3,O=4
-  uint8_t word[] = {1,2,3,3,4}; // H E L L O
-  uint16_t x = 20, y = 30, scale = 2;
-  for (int i = 0; i < 5; i++) {
-      ST7735_DrawChar(x + i*(6*scale), y, word[i], COLOR_GREEN, COLOR_BLACK, scale);
-  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -223,6 +184,7 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
+  MX_TouchGFX_Process();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -285,6 +247,37 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
+  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
+
 }
 
 /**
