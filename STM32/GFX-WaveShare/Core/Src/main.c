@@ -47,7 +47,74 @@ CRC_HandleTypeDef hcrc;
 SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
+#define LCD_CS_LOW()   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET)
+#define LCD_CS_HIGH()  HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET)
+#define LCD_DC_CMD()   HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_RESET)
+#define LCD_DC_DATA()  HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET)
 
+static void LCD_WriteCmd(uint8_t cmd) {
+    LCD_DC_CMD();
+    LCD_CS_LOW();
+    HAL_SPI_Transmit(&hspi2, &cmd, 1, HAL_MAX_DELAY);
+    LCD_CS_HIGH();
+}
+
+// БЕЗ static — вызывается из C++ (TouchGFXHAL.cpp)
+void LCD_WriteData(uint8_t *data, uint16_t len) {
+    LCD_DC_DATA();
+    LCD_CS_LOW();
+    HAL_SPI_Transmit(&hspi2, data, len, HAL_MAX_DELAY);
+    LCD_CS_HIGH();
+}
+
+static void LCD_WriteData8(uint8_t d) { LCD_WriteData(&d, 1); }
+
+static void ILI9486_Init(void) {
+    // Аппаратный сброс
+    HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
+    HAL_Delay(20);
+    HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_SET);
+    HAL_Delay(150);
+
+    LCD_WriteCmd(0x01); HAL_Delay(120);   // SWRESET
+    LCD_WriteCmd(0x11); HAL_Delay(120);   // Sleep out
+
+    LCD_WriteCmd(0x3A); LCD_WriteData8(0x55); // Pixel format RGB565
+
+    LCD_WriteCmd(0xC0); LCD_WriteData8(0x0E); LCD_WriteData8(0x0E); // Power Control 1
+    LCD_WriteCmd(0xC1); LCD_WriteData8(0x41); LCD_WriteData8(0x00); // Power Control 2
+    LCD_WriteCmd(0xC2); LCD_WriteData8(0x55); // Power Control 3
+
+    LCD_WriteCmd(0xC5);
+    LCD_WriteData8(0x00); LCD_WriteData8(0x00); LCD_WriteData8(0x00); LCD_WriteData8(0x00); // VCOM
+
+    LCD_WriteCmd(0xE0); // Positive Gamma
+    { uint8_t g1[15]={0x0F,0x1F,0x1C,0x0C,0x0F,0x08,0x48,0x98,0x37,0x0A,0x13,0x04,0x11,0x0D,0x00};
+      LCD_WriteData(g1,15); }
+
+    LCD_WriteCmd(0xE1); // Negative Gamma
+    { uint8_t g2[15]={0x0F,0x32,0x2E,0x0B,0x0D,0x05,0x47,0x75,0x37,0x06,0x10,0x03,0x24,0x20,0x00};
+      LCD_WriteData(g2,15); }
+
+    LCD_WriteCmd(0x21);                    // INVON (SPI-режим)
+    LCD_WriteCmd(0x36); LCD_WriteData8(0x48); // MADCTL — ориентация, подбираем экспериментально
+
+    LCD_WriteCmd(0x29); HAL_Delay(150);    // Display ON
+
+    HAL_GPIO_WritePin(LCD_BL_GPIO_Port, LCD_BL_Pin, GPIO_PIN_SET); // подсветка — проверим полярность на практике!
+}
+
+// БЕЗ static — вызывается из C++
+void ILI9486_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+    uint8_t buf[4];
+    buf[0]=(x0>>8)&0xFF; buf[1]=x0&0xFF; buf[2]=(x1>>8)&0xFF; buf[3]=x1&0xFF;
+    LCD_WriteCmd(0x2A); LCD_WriteData(buf,4); // CASET
+
+    buf[0]=(y0>>8)&0xFF; buf[1]=y0&0xFF; buf[2]=(y1>>8)&0xFF; buf[3]=y1&0xFF;
+    LCD_WriteCmd(0x2B); LCD_WriteData(buf,4); // RASET
+
+    LCD_WriteCmd(0x2C); // RAMWR
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,6 +168,7 @@ int main(void)
   MX_SPI2_Init();
   MX_TouchGFX_Init();
   /* USER CODE BEGIN 2 */
+  ILI9486_Init();
 
   /* USER CODE END 2 */
 
