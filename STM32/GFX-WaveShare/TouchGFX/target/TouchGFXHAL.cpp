@@ -32,6 +32,8 @@ extern "C" {
 
 using namespace touchgfx;
 
+namespace touchgfx { void startNewTransfer(); }
+
 extern "C" void touchgfx_tick(void)
 {
     HAL::getInstance()->vSync();
@@ -50,8 +52,33 @@ extern "C" void touchgfx_tick(void)
  *  E.g. if using DMA to transfer the block, this could be called in the "Transfer Completed" interrupt handler.
  *
  */
-#warning "A user must call touchgfx::startNewTransfer(); once touchgfxDisplayDriverTransmitBlock() has succesfully sent a block."
-#warning "A user must implement C-methods touchgfxDisplayDriverTransmitActive() and touchgfxDisplayDriverTransmitBlock() used by the Partial Framebuffer Strategy."
+
+// HAL_SPI_Transmit используется в блокирующем режиме -> к моменту возврата из
+// touchgfxDisplayDriverTransmitBlock() передача уже завершена, "занятости" нет
+extern "C" int touchgfxDisplayDriverTransmitActive()
+{
+    return 0;
+}
+
+extern "C" void touchgfxDisplayDriverTransmitBlock(const uint8_t* pixels, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+{
+    ILI9486_SetAddrWindow(x, y, x + w - 1, y + h - 1);
+
+    const uint16_t* src = (const uint16_t*)pixels;
+    static uint8_t lineBuf[480 * 2];
+    for (int row = 0; row < h; row++)
+    {
+        for (int col = 0; col < w; col++)
+        {
+            uint16_t px = src[row * w + col];
+            lineBuf[col * 2]     = (uint8_t)(px >> 8);
+            lineBuf[col * 2 + 1] = (uint8_t)(px & 0xFF);
+        }
+        LCD_WriteData(lineBuf, w * 2);
+    }
+
+    startNewTransfer();
+}
 
 void TouchGFXHAL::initialize()
 {
@@ -103,26 +130,9 @@ void TouchGFXHAL::setTFTFrameBuffer(uint16_t* address)
  */
 void TouchGFXHAL::flushFrameBuffer(const touchgfx::Rect& rect)
 {
-    // advanceFrameBufferToRect уже умеет правильно посчитать смещение
-    // и для Partial Framebuffer, и для обычного — используем готовую утилиту
-    uint8_t* fbPtr = advanceFrameBufferToRect((uint8_t*)getTFTFrameBuffer(), rect);
-    uint16_t* fb = (uint16_t*)fbPtr;
-
-    ILI9486_SetAddrWindow(rect.x, rect.y, rect.x + rect.width - 1, rect.y + rect.height - 1);
-
-    static uint8_t lineBuf[480 * 2];
-    for (int row = 0; row < rect.height; row++)
-    {
-        uint16_t* srcRow = fb + row * rect.width; // при Partial Framebuffer буфер плотно упакован по rect.width
-        for (int col = 0; col < rect.width; col++)
-        {
-            uint16_t px = srcRow[col];
-            lineBuf[col*2]   = (uint8_t)(px >> 8);
-            lineBuf[col*2+1] = (uint8_t)(px & 0xFF);
-        }
-        LCD_WriteData(lineBuf, rect.width * 2);
-    }
-
+    // При Partial Buffer - GRAM display пиксели уходят на экран через
+    // touchgfxDisplayDriverTransmitBlock() — generated-версия сама берёт
+    // готовый блок из frameBufferAllocator и вызывает её с нужными данными
     TouchGFXGeneratedHAL::flushFrameBuffer(rect);
 }
 
