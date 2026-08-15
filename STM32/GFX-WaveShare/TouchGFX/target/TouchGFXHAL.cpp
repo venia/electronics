@@ -21,10 +21,22 @@
 /* USER CODE END Header */
 
 #include <TouchGFXHAL.hpp>
+#include <touchgfx/hal/OSWrappers.hpp>
+
+extern "C" {
+    void LCD_WriteData(uint8_t *data, uint16_t len);
+    void ILI9486_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+}
 
 /* USER CODE BEGIN TouchGFXHAL.cpp */
 
 using namespace touchgfx;
+
+extern "C" void touchgfx_tick(void)
+{
+    HAL::getInstance()->vSync();
+    OSWrappers::signalVSync();
+}
 
 /* ******************************************************
  * Functions required by Partial Frame Buffer Strategy
@@ -91,15 +103,25 @@ void TouchGFXHAL::setTFTFrameBuffer(uint16_t* address)
  */
 void TouchGFXHAL::flushFrameBuffer(const touchgfx::Rect& rect)
 {
-    // Calling parent implementation of flushFrameBuffer(const touchgfx::Rect& rect).
-    //
-    // To overwrite the generated implementation, omit the call to the parent function
-    // and implement the needed functionality here.
-    // Please note, HAL::flushFrameBuffer(const touchgfx::Rect& rect) must
-    // be called to notify the touchgfx framework that flush has been performed.
-    // To calculate the start address of rect,
-    // use advanceFrameBufferToRect(uint8_t* fbPtr, const touchgfx::Rect& rect)
-    // defined in TouchGFXGeneratedHAL.cpp
+    // advanceFrameBufferToRect уже умеет правильно посчитать смещение
+    // и для Partial Framebuffer, и для обычного — используем готовую утилиту
+    uint8_t* fbPtr = advanceFrameBufferToRect((uint8_t*)getTFTFrameBuffer(), rect);
+    uint16_t* fb = (uint16_t*)fbPtr;
+
+    ILI9486_SetAddrWindow(rect.x, rect.y, rect.x + rect.width - 1, rect.y + rect.height - 1);
+
+    static uint8_t lineBuf[480 * 2];
+    for (int row = 0; row < rect.height; row++)
+    {
+        uint16_t* srcRow = fb + row * rect.width; // при Partial Framebuffer буфер плотно упакован по rect.width
+        for (int col = 0; col < rect.width; col++)
+        {
+            uint16_t px = srcRow[col];
+            lineBuf[col*2]   = (uint8_t)(px >> 8);
+            lineBuf[col*2+1] = (uint8_t)(px & 0xFF);
+        }
+        LCD_WriteData(lineBuf, rect.width * 2);
+    }
 
     TouchGFXGeneratedHAL::flushFrameBuffer(rect);
 }
