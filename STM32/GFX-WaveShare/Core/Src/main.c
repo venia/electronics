@@ -170,6 +170,31 @@ int main(void)
   /* USER CODE BEGIN 2 */
   ILI9486_Init();
 
+  // ДИАГНОСТИКА: бесконечная прямая заливка экрана, в обход TouchGFX,
+  // чтобы спокойно, без спешки, ловить SPI осциллографом (CS/SCLK/MOSI)
+  {
+      static uint8_t fillBuf[480 * 2];
+      int colorToggle = 0;
+      while (1)
+      {
+          ILI9486_SetAddrWindow(0, 0, 479, 319);
+          for (int i = 0; i < 480; i++) {
+              if (colorToggle) {
+                  fillBuf[i * 2]     = 0xF8; // красный
+                  fillBuf[i * 2 + 1] = 0x00;
+              } else {
+                  fillBuf[i * 2]     = 0x00; // синий
+                  fillBuf[i * 2 + 1] = 0x1F;
+              }
+          }
+          for (int row = 0; row < 320; row++) {
+              LCD_WriteData(fillBuf, sizeof(fillBuf));
+          }
+          colorToggle = !colorToggle;
+          HAL_Delay(1000);
+      }
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -297,7 +322,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
