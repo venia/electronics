@@ -76,14 +76,11 @@ static void ILI9486_Init(void) {
     HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_SET);
     HAL_Delay(150);
 
-    LCD_WriteCmd(0x01); HAL_Delay(120);   // SWRESET
     LCD_WriteCmd(0x11); HAL_Delay(120);   // Sleep out
 
     LCD_WriteCmd(0x3A); LCD_WriteData8(0x55); // Pixel format RGB565
 
-    LCD_WriteCmd(0xC0); LCD_WriteData8(0x0E); LCD_WriteData8(0x0E); // Power Control 1
-    LCD_WriteCmd(0xC1); LCD_WriteData8(0x41); LCD_WriteData8(0x00); // Power Control 2
-    LCD_WriteCmd(0xC2); LCD_WriteData8(0x55); // Power Control 3
+    LCD_WriteCmd(0xC2); LCD_WriteData8(0x44); // Power Control 3 (For Normal Mode)
 
     LCD_WriteCmd(0xC5);
     LCD_WriteData8(0x00); LCD_WriteData8(0x00); LCD_WriteData8(0x00); LCD_WriteData8(0x00); // VCOM
@@ -96,8 +93,8 @@ static void ILI9486_Init(void) {
     { uint8_t g2[15]={0x0F,0x32,0x2E,0x0B,0x0D,0x05,0x47,0x75,0x37,0x06,0x10,0x03,0x24,0x20,0x00};
       LCD_WriteData(g2,15); }
 
-    LCD_WriteCmd(0x21);                    // INVON (SPI-режим)
-    LCD_WriteCmd(0x36); LCD_WriteData8(0x48); // MADCTL — ориентация, подбираем экспериментально
+    LCD_WriteCmd(0x20);                    // Display Inversion OFF (RPi LCD (A) вариант панели)
+    LCD_WriteCmd(0x36); LCD_WriteData8(0x68); // MADCTL — MV=1 (row/col exchange под альбомные 480x320), подбираем экспериментально
 
     LCD_WriteCmd(0x29); HAL_Delay(150);    // Display ON
 
