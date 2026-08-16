@@ -26,6 +26,11 @@
 extern "C" {
     void LCD_WriteData(uint8_t *data, uint16_t len);
     void ILI9486_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+    // Плата Waveshare требует, чтобы адресное окно и все пиксели шли одной
+    // непрерывной SPI-транзакцией (CS низкий на всё время) — см. main.c и
+    // журнал п. 6.12. LCD_WriteData/ILI9486_SetAddrWindow сами CS не трогают.
+    void LCD_Begin(void);
+    void LCD_End(void);
 }
 
 /* USER CODE BEGIN TouchGFXHAL.cpp */
@@ -62,6 +67,7 @@ extern "C" int touchgfxDisplayDriverTransmitActive()
 
 extern "C" void touchgfxDisplayDriverTransmitBlock(const uint8_t* pixels, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
+    LCD_Begin(); // адресное окно + все пиксели блока — одна непрерывная транзакция
     ILI9486_SetAddrWindow(x, y, x + w - 1, y + h - 1);
 
     const uint16_t* src = (const uint16_t*)pixels;
@@ -76,6 +82,7 @@ extern "C" void touchgfxDisplayDriverTransmitBlock(const uint8_t* pixels, uint16
         }
         LCD_WriteData(lineBuf, w * 2);
     }
+    LCD_End();
 
     startNewTransfer();
 }
