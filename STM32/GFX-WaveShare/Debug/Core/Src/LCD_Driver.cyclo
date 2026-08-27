@@ -1,0 +1,14 @@
+../Core/Src/LCD_Driver.c:31:13:LCD_Reset	1
+../Core/Src/LCD_Driver.c:41:13:LCD_SetBackLight	1
+../Core/Src/LCD_Driver.c:49:6:LCD_WriteReg	1
+../Core/Src/LCD_Driver.c:57:6:LCD_WriteData	1
+../Core/Src/LCD_Driver.c:70:13:LCD_Write_AllData	2
+../Core/Src/LCD_Driver.c:86:13:LCD_InitReg	1
+../Core/Src/LCD_Driver.c:199:6:LCD_SetGramScanWay	13
+../Core/Src/LCD_Driver.c:265:6:LCD_Init	2
+../Core/Src/LCD_Driver.c:297:6:LCD_SetWindow	1
+../Core/Src/LCD_Driver.c:321:6:LCD_SetCursor	1
+../Core/Src/LCD_Driver.c:331:6:LCD_SetColor	1
+../Core/Src/LCD_Driver.c:343:6:LCD_SetPointlColor	3
+../Core/Src/LCD_Driver.c:360:6:LCD_SetArealColor	3
+../Core/Src/LCD_Driver.c:372:6:LCD_Clear	1

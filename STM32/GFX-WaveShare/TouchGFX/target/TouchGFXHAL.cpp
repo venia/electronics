@@ -24,11 +24,15 @@
 #include <touchgfx/hal/OSWrappers.hpp>
 
 extern "C" {
-    void LCD_WriteData(uint8_t *data, uint16_t len);
+    // main.c теперь подключает ДОСЛОВНУЮ копию официального Waveshare
+    // LCD_Driver.c (см. журнал п. 6.18) — ILI9486_SetAddrWindow/LCD_WritePixels/
+    // LCD_Begin/LCD_End это тонкие обёртки поверх него специально для этого
+    // файла. ILI9486_SetAddrWindow сама управляет CS для CASET/RASET/RAMWR;
+    // после неё CS уже HIGH — LCD_Begin()/LCD_End() нужны ТОЛЬКО вокруг
+    // последующего непрерывного потока пикселей через LCD_WritePixels(),
+    // которая сама CS не трогает.
+    void LCD_WritePixels(uint8_t *data, uint16_t len);
     void ILI9486_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
-    // Плата Waveshare требует, чтобы адресное окно и все пиксели шли одной
-    // непрерывной SPI-транзакцией (CS низкий на всё время) — см. main.c и
-    // журнал п. 6.12. LCD_WriteData/ILI9486_SetAddrWindow сами CS не трогают.
     void LCD_Begin(void);
     void LCD_End(void);
 }
@@ -67,8 +71,9 @@ extern "C" int touchgfxDisplayDriverTransmitActive()
 
 extern "C" void touchgfxDisplayDriverTransmitBlock(const uint8_t* pixels, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
-    LCD_Begin(); // адресное окно + все пиксели блока — одна непрерывная транзакция
-    ILI9486_SetAddrWindow(x, y, x + w - 1, y + h - 1);
+    ILI9486_SetAddrWindow(x, y, x + w - 1, y + h - 1); // сама пульсирует CS
+
+    LCD_Begin(); // а сам поток пикселей блока — одна непрерывная транзакция
 
     const uint16_t* src = (const uint16_t*)pixels;
     static uint8_t lineBuf[480 * 2];
@@ -80,7 +85,7 @@ extern "C" void touchgfxDisplayDriverTransmitBlock(const uint8_t* pixels, uint16
             lineBuf[col * 2]     = (uint8_t)(px >> 8);
             lineBuf[col * 2 + 1] = (uint8_t)(px & 0xFF);
         }
-        LCD_WriteData(lineBuf, w * 2);
+        LCD_WritePixels(lineBuf, w * 2);
     }
     LCD_End();
 

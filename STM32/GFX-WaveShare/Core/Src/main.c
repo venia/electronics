@@ -47,129 +47,29 @@ CRC_HandleTypeDef hcrc;
 SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
-#define LCD_CS_LOW()   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET)
-#define LCD_CS_HIGH()  HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET)
-#define LCD_DC_CMD()   HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_RESET)
-#define LCD_DC_DATA()  HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET)
+// Больше НЕ пишем свою реализацию протокола ILI9486 — используем ДОСЛОВНУЮ
+// копию официального Waveshare LCD_Driver.c/.h (Core/Src/LCD_Driver.c,
+// Core/Inc/LCD_Driver.h, скопированы из STM32-примера в
+// 3.5inch_TFT_Touch_Shield_Code_V2), адаптирован только низкоуровневый слой
+// DEV_Config.c под нашу плату (SPI2/пины). См. журнал GFX-WaveShare-Workflow.md,
+// п. 6.18.
+#include "LCD_Driver.h"
 
-// Плата Waveshare НЕ подключает ILI9486 к SPI напрямую: между STM32 и матрицей
-// стоят 4х 74HC4094 (serial-in shift register), конвертирующие SPI в 16-битную
-// параллельную шину ILI9486 (подтверждено по чипам на плате и по исходникам
-// драйвера ImpulseAdventure/Waveshare_ILI9486, написанного именно под этот
-// шилд — см. журнал п. 6.12). Из-за этого КАЖДЫЙ логический байт команды или
-// параметра нужно слать как ДВА физических байта: 0x00 (старший, не
-// используется чипом) + реальное значение (младший) — иначе сдвиговый регистр
-// получает не то количество бит и матрица не реагирует вообще ни на что,
-// что мы и наблюдали. Пиксельные данные (RAMWR) уже честные 16-битные RGB565
-// — дополнительным нулём НЕ дополняются, см. LCD_WriteData ниже.
-//
-// CS также должен оставаться низким на всё время одной "логической" операции
-// (команда + все её параметры, либо адресное окно + все пиксели), а не
-// дёргаться на каждый байт — поэтому команда/параметр (LCD_Cmd/LCD_Param)
-// сами CS не трогают, им управляет вызывающая функция через LCD_Begin/LCD_End.
+// Тонкие обёртки для TouchGFXHAL.cpp — сам LCD_Driver.h не экспортирует
+// сырую пиксельную пересылку буфера (только LCD_SetColor с одним цветом на
+// N повторов) и не даёт управлять CS снаружи, а для потокового вывода блоков
+// TouchGFX это нужно. Названа LCD_WritePixels (не LCD_WriteData), чтобы не
+// конфликтовать с официальной LCD_WriteData(uint8_t) из LCD_Driver.c.
+void LCD_Begin(void) { LCD_CS_0; }
+void LCD_End(void)   { LCD_CS_1; }
 
-// БЕЗ static — вызывается из C++ (TouchGFXHAL.cpp)
-void LCD_Begin(void) { LCD_CS_LOW(); }
-void LCD_End(void)   { LCD_CS_HIGH(); }
-
-// ЭКСПЕРИМЕНТ: на плате реально 4х74HC4094 (а не 2х, под которые писан
-// эталонный драйвер) — пробуем гипотезу, что реальная ширина слова 32 бита,
-// а не 16, и наши прежние 2 байта просто не "дотягивали" до дальних микросхем
-// в цепочке. Значение кладём в младший байт 32-битного слова (0x00,0x00,0x00,val).
-static void LCD_Cmd(uint8_t cmd) {
-    LCD_DC_CMD();
-    uint8_t buf[4] = { 0x00, 0x00, 0x00, cmd };
-    HAL_SPI_Transmit(&hspi2, buf, 4, HAL_MAX_DELAY);
-}
-
-static void LCD_Param(uint8_t val) {
-    LCD_DC_DATA();
-    uint8_t buf[4] = { 0x00, 0x00, 0x00, val };
-    HAL_SPI_Transmit(&hspi2, buf, 4, HAL_MAX_DELAY);
-}
-
-// Команда без параметров — отдельная, самодостаточная транзакция.
-static void LCD_WriteCmd(uint8_t cmd) {
-    LCD_Begin();
-    LCD_Cmd(cmd);
-    LCD_End();
-}
-
-// Команда + N параметров одним байтом каждый — тоже отдельная транзакция,
-// CS держится низким на всё время (это и есть исправление главной ошибки).
-static void LCD_WriteCmdParams(uint8_t cmd, const uint8_t *params, uint8_t count) {
-    LCD_Begin();
-    LCD_Cmd(cmd);
-    for (uint8_t i = 0; i < count; i++) {
-        LCD_Param(params[i]);
-    }
-    LCD_End();
-}
-
-// БЕЗ static — вызывается из C++ (TouchGFXHAL.cpp). Именно ПИКСЕЛЬНЫЕ данные
-// (RAMWR) — уже настоящие 16-битные RGB565 (2 честных байта на пиксель),
-// нулём НЕ дополняются, в отличие от LCD_Cmd/LCD_Param выше. CS уже должен
-// быть опущен вызывающим кодом (LCD_Begin) — эта функция его не трогает,
-// чтобы адресное окно + поток пикселей шли одной непрерывной транзакцией.
-void LCD_WriteData(uint8_t *data, uint16_t len) {
-    LCD_DC_DATA();
-    HAL_SPI_Transmit(&hspi2, data, len, HAL_MAX_DELAY);
-}
-
-static void ILI9486_Init(void) {
-    // Аппаратный сброс
-    HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
-    HAL_Delay(20);
-    HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_SET);
-    HAL_Delay(150);
-
-    // Регистры и их значения — из ImpulseAdventure/Waveshare_ILI9486
-    // (initializeLcd()), т.к. это подтверждённо рабочий драйвер именно под
-    // нашу плату (4x74HC4094), а не под "простой" 4-wire SPI ILI9486.
-    LCD_WriteCmdParams(0xC0, (uint8_t[]){0x19, 0x1A}, 2);             // Power Control 1
-    LCD_WriteCmdParams(0xC1, (uint8_t[]){0x45, 0x00}, 2);             // Power Control 2
-    LCD_WriteCmdParams(0xC2, (uint8_t[]){0x33}, 1);                   // Power Control 3
-    LCD_WriteCmdParams(0xC5, (uint8_t[]){0x00, 0x28}, 2);             // VCOM Control
-    LCD_WriteCmdParams(0xB1, (uint8_t[]){0xA0, 0x11}, 2);             // Frame Rate Control
-    LCD_WriteCmdParams(0xB4, (uint8_t[]){0x02}, 1);                   // Display Inversion Control
-
-    LCD_WriteCmdParams(0xB6, (uint8_t[]){0x00, 0x42, 0x3B}, 3);       // Display Function Control
-
-    LCD_WriteCmdParams(0xE0, (uint8_t[]){                             // Positive Gamma
-        0x1F,0x25,0x22,0x0B,0x06,0x0A,0x4E,0xC6,0x39,0x00,0x00,0x00,0x00,0x00,0x00}, 15);
-    LCD_WriteCmdParams(0xE1, (uint8_t[]){                             // Negative Gamma
-        0x1F,0x3F,0x3F,0x0F,0x1F,0x0F,0x46,0x49,0x31,0x05,0x09,0x03,0x1C,0x1A,0x00}, 15);
-
-    LCD_WriteCmdParams(0x3A, (uint8_t[]){0x55}, 1);                   // Pixel Format = 16bpp
-
-    LCD_WriteCmdParams(0xB6, (uint8_t[]){0x00, 0x22}, 2);             // Display Function Control (scan dir.)
-    LCD_WriteCmdParams(0x36, (uint8_t[]){0x68}, 1);                   // MADCTL — landscape (rotation 1)
-
-    LCD_WriteCmd(0x11);                                               // Sleep out
-    HAL_Delay(120);
-
-    LCD_WriteCmd(0x29);                                               // Display ON
-    HAL_Delay(50);
-
-    HAL_GPIO_WritePin(LCD_BL_GPIO_Port, LCD_BL_Pin, GPIO_PIN_SET); // подтверждено на железе — управляет правильно
-}
-
-// БЕЗ static — вызывается из C++. ВНИМАНИЕ: не открывает и не закрывает CS —
-// по протоколу этой платы адресное окно (CASET/RASET/RAMWR) и последующие
-// пиксельные данные должны идти ОДНОЙ непрерывной транзакцией. Вызывающий
-// код обязан вызвать LCD_Begin() до и LCD_End() после того, как все пиксели
-// отправлены через LCD_WriteData().
 void ILI9486_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
-    LCD_Cmd(0x2A); // CASET
-    LCD_Param((x0>>8)&0xFF); LCD_Param(x0&0xFF);
-    LCD_Param((x1>>8)&0xFF); LCD_Param(x1&0xFF);
+    LCD_SetWindow(x0, y0, x1 + 1, y1 + 1); // официальный SetWindow сам вычитает 1 из конца
+}
 
-    LCD_Cmd(0x2B); // RASET
-    LCD_Param((y0>>8)&0xFF); LCD_Param(y0&0xFF);
-    LCD_Param((y1>>8)&0xFF); LCD_Param(y1&0xFF);
-
-    LCD_Cmd(0x2C); // RAMWR — после этого все LCD_WriteData() уходят как пиксели
-    LCD_DC_DATA();
+void LCD_WritePixels(uint8_t *data, uint16_t len) {
+    LCD_DC_1;
+    HAL_SPI_Transmit(&hspi2, data, len, HAL_MAX_DELAY);
 }
 
 /* USER CODE END PV */
@@ -225,7 +125,7 @@ int main(void)
   MX_SPI2_Init();
   MX_TouchGFX_Init();
   /* USER CODE BEGIN 2 */
-  ILI9486_Init();
+  LCD_Init(SCAN_DIR_DFT, 1000); // официальный LCD_Init — делает сброс+InitReg+ScanWay+SleepOut+DisplayON сама
 
   // ДИАГНОСТИКА: бесконечная прямая заливка экрана, в обход TouchGFX,
   // чтобы спокойно, без спешки, ловить SPI осциллографом (CS/SCLK/MOSI)
@@ -234,8 +134,8 @@ int main(void)
       int colorToggle = 0;
       while (1)
       {
-          LCD_Begin(); // адресное окно + все пиксели — одна непрерывная транзакция
-          ILI9486_SetAddrWindow(0, 0, 479, 319);
+          ILI9486_SetAddrWindow(0, 0, 479, 319); // тонкая обёртка над официальным LCD_SetWindow
+          LCD_Begin(); // а вот сам поток пикселей — одна непрерывная транзакция
           for (int i = 0; i < 480; i++) {
               if (colorToggle) {
                   fillBuf[i * 2]     = 0xF8; // красный
@@ -246,7 +146,7 @@ int main(void)
               }
           }
           for (int row = 0; row < 320; row++) {
-              LCD_WriteData(fillBuf, sizeof(fillBuf));
+              LCD_WritePixels(fillBuf, sizeof(fillBuf));
           }
           LCD_End();
           colorToggle = !colorToggle;
@@ -257,11 +157,11 @@ int main(void)
           // пикселями. Если НИ ОДНА из них ничего не меняет (экран всё так же ровно
           // бело) — подозрение падает на внутренние напряжения смещения панели
           // (VGH/VGL/GVDD), а не на протокол/картинку (см. журнал, кандидат #1).
-          LCD_WriteCmd(0x28); HAL_Delay(2000); // Display OFF — экран должен потухнуть/помутнеть
-          LCD_WriteCmd(0x29); HAL_Delay(2000); // Display ON — должен вернуться прежний вид
+          LCD_WriteReg(0x28); HAL_Delay(2000); // Display OFF — экран должен потухнуть/помутнеть
+          LCD_WriteReg(0x29); HAL_Delay(2000); // Display ON — должен вернуться прежний вид
 
-          LCD_WriteCmd(0x21); HAL_Delay(2000); // Inversion ON — цвета должны инвертироваться
-          LCD_WriteCmd(0x20); HAL_Delay(2000); // Inversion OFF — должно вернуться обратно
+          LCD_WriteReg(0x21); HAL_Delay(2000); // Inversion ON — цвета должны инвертироваться
+          LCD_WriteReg(0x20); HAL_Delay(2000); // Inversion OFF — должно вернуться обратно
 
           // ДИАГНОСТИКА (визуальная): реально ли PC3 управляет подсветкой, или она
           // на модуле запитана напрямую и всегда горит независимо от нашего GPIO
