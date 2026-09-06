@@ -70,6 +70,18 @@ SCLK, MISO (для тача), MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL, TP_CS, TP_I
 Цель этого прохода — только Pinout & базовый System Core, **без** генерации кода. Генерацию кода и
 тонкую настройку Clock Tree делаем отдельным шагом после того, как пины подтверждены.
 
+**Прогресс:**
+- [x] 1. Создание проекта (STM32H723VGT6)
+- [x] 2. RCC → HSE Crystal/Ceramic Resonator
+- [x] 3. Trace and Debug → DEBUG = Serial Wire (подтверждено скриншотом: PA13/PA14 зелёные,
+      DEBUG_JTMS-SWDIO/DEBUG_JTCK-SWCLK)
+- [x] 4. SPI2 = Full-Duplex Master, пины вручную переназначены на PB13(SCK)/PB14(MISO)/PB15(MOSI)
+      (подтверждено скриншотом от 2026-09-06 — все три зелёные с правильными подписями)
+- [x] 5-8. GPIO для LCD/тача настроены и подписаны (подтверждено скриншотом от 2026-09-06: PC0=LCD_CS,
+      PC1=LCD_DC, PC2=LCD_RST, PC3=LCD_BL, PC4=TP_CS — все Output Push-Pull/No pull/Low speed;
+      PC5=TP_IRQ — Input/Pull-up)
+- [ ] 9-10. Проверка конфликтов, сохранение проекта — в процессе
+
 1. **Создание проекта**
    - Открыть STM32CubeMX (отдельная программа — в CubeIDE 2.2.0 конфигуратор пинов вынесен наружу)
    - `File → New Project` → вкладка **MCU Selector** → в поиске ввести `STM32H723VGT6` → выбрать чип
@@ -79,9 +91,11 @@ SCLK, MISO (для тача), MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL, TP_CS, TP_I
    - High Speed Clock (HSE): **Crystal/Ceramic Resonator** (на плате WeAct реальный кварц 25 МГц)
    - Low Speed Clock (LSE), если нужен RTC в будущем: Crystal/Ceramic Resonator (можно пропустить сейчас)
 
-3. **System Core → SYS**
-   - Debug: **Serial Wire** (оставляет SWDIO/SWCLK для отладчика, не даёт CubeMX случайно занять эти пины
-     чем-то другим)
+3. **Trace and Debug → DEBUG** (не в System Core → SYS — в этой версии CubeMX Debug вынесен в отдельную
+   категорию "Trace and Debug" в списке слева; SYS теперь содержит только Timebase Source)
+   - Mode: **Serial Wire** (оставляет SWDIO/SWCLK для отладчика, не даёт CubeMX случайно занять эти пины
+     чем-то другим). Часто это уже стоит по умолчанию — проверить, что PA13/PA14 подсвечены как
+     зарезервированные на картинке чипа справа.
 
 4. **Connectivity → SPI2**
    - Mode: **Full-Duplex Master** (не "Transmit Only" — тачу XPT2046 нужен приём данных по MISO)
@@ -90,8 +104,12 @@ SCLK, MISO (для тача), MOSI, LCD_CS, LCD_DC, LCD_RST, LCD_BL, TP_CS, TP_I
      наборов пинов, CubeMX может по умолчанию предложить не тот набор.
    - Если подсветились не те пины — кликнуть вручную на PB13 на картинке чипа → в выпадающем списке
      выбрать `SPI2_SCK`, аналогично PB14 → `SPI2_MISO`, PB15 → `SPI2_MOSI`.
+   - Если снять с пина назначение SPI (например убрать SCK с неправильного пина) — CubeMX может
+     автоматически перевести весь Mode в Disable и заодно освободить MOSI/MISO тоже. Это нормально:
+     просто заново выставь Mode = Full-Duplex Master и назначь все три пина заново на правильные ноги.
    - Data Size, Prescaler, CPOL/CPHA на этом шаге **не трогать** — это Configuration, настроим на этапе
-     программирования.
+     программирования (сейчас по умолчанию стоит Data Size = 4 Bits — это тоже поправим позже, нужно
+     будет 8 Bits).
 
 5. **GPIO для управляющих линий дисплея**
    - Кликнуть на PC0 на картинке чипа → `GPIO_Output`
