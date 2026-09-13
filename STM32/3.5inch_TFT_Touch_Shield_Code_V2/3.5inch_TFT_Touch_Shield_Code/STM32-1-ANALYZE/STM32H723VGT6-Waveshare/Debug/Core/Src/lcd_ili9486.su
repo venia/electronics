@@ -1,0 +1,9 @@
+../Core/Src/lcd_ili9486.c:5:13:LCD_CS_Low	8	static
+../Core/Src/lcd_ili9486.c:6:13:LCD_CS_High	8	static
+../Core/Src/lcd_ili9486.c:8:13:LCD_WriteReg	16	static
+../Core/Src/lcd_ili9486.c:16:13:LCD_WriteData8	24	static
+../Core/Src/lcd_ili9486.c:26:13:LCD_Reset	8	static
+../Core/Src/lcd_ili9486.c:36:13:LCD_InitRegisters	8	static
+../Core/Src/lcd_ili9486.c:81:6:LCD_Init	8	static
+../Core/Src/lcd_ili9486.c:95:13:LCD_SetWindow	24	static
+../Core/Src/lcd_ili9486.c:108:6:LCD_FillScreen	24	static
