@@ -44,7 +44,8 @@
 SPI_HandleTypeDef hspi2;
 
 /* USER CODE BEGIN PV */
-
+volatile uint8_t lcd_id[3] = { 0, 0, 0 };
+volatile uint16_t tp_x = 0, tp_y = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,6 +97,8 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   LCD_Init();
+  LCD_ReadID((uint8_t *)lcd_id);
+  __NOP(); /* <-- поставить брейкпоинт на эту строку, здесь уже готов lcd_id[0..2] */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -105,12 +108,19 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    TP_ReadRaw((uint16_t *)&tp_x, (uint16_t *)&tp_y);
+    HAL_Delay(100);
+
+    /* Заливка цветом временно отключена на время диагностики тача/чтения ID —
+     * экран пока не инициализируется корректно, лишние HAL_Delay(1000) только
+     * замедлят наблюдение за tp_x/tp_y. Раскомментировать, когда вернёмся к тесту экрана.
     LCD_FillScreen(COLOR_RED);
     HAL_Delay(1000);
     LCD_FillScreen(COLOR_GREEN);
     HAL_Delay(1000);
     LCD_FillScreen(COLOR_BLUE);
     HAL_Delay(1000);
+    */
   }
   /* USER CODE END 3 */
 }
@@ -196,7 +206,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; /* временно снижено для теста чтения ID (0xD3) */
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

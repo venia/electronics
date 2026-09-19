@@ -92,6 +92,49 @@ void LCD_Init(void)
     LCD_WriteReg(0x29); /* display on */
 }
 
+void LCD_ReadID(uint8_t id[3])
+{
+    uint8_t cmd = 0xD3;
+    uint8_t tx[4] = { 0x00, 0x00, 0x00, 0x00 };
+    uint8_t rx[4] = { 0x00, 0x00, 0x00, 0x00 };
+
+    HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_RESET); /* command phase */
+    LCD_CS_Low();
+    HAL_SPI_Transmit(&hspi2, &cmd, 1, HAL_MAX_DELAY);
+
+    HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET); /* data phase, CS stays low */
+    HAL_SPI_TransmitReceive(&hspi2, tx, rx, 4, HAL_MAX_DELAY);
+    LCD_CS_High();
+
+    /* rx[0] is a dummy byte per datasheet; ID bytes follow */
+    id[0] = rx[1];
+    id[1] = rx[2];
+    id[2] = rx[3];
+}
+
+/* Диагностика: чтение координат XPT2046 (тач на той же линии MISO/PB14, что и экран).
+ * Используется только чтобы проверить, работает ли приём по MISO вообще —
+ * не финальный драйвер тача. */
+void TP_ReadRaw(uint16_t *x, uint16_t *y)
+{
+    uint8_t tx[3];
+    uint8_t rx[3];
+
+    HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET); /* деселект экрана, шина общая */
+
+    HAL_GPIO_WritePin(TP_CS_GPIO_Port, TP_CS_Pin, GPIO_PIN_RESET);
+    tx[0] = 0xD0; tx[1] = 0x00; tx[2] = 0x00; /* control byte: X position, 12-bit, differential */
+    HAL_SPI_TransmitReceive(&hspi2, tx, rx, 3, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(TP_CS_GPIO_Port, TP_CS_Pin, GPIO_PIN_SET);
+    *x = ((uint16_t)rx[1] << 8 | rx[2]) >> 3;
+
+    HAL_GPIO_WritePin(TP_CS_GPIO_Port, TP_CS_Pin, GPIO_PIN_RESET);
+    tx[0] = 0x90; tx[1] = 0x00; tx[2] = 0x00; /* control byte: Y position */
+    HAL_SPI_TransmitReceive(&hspi2, tx, rx, 3, HAL_MAX_DELAY);
+    HAL_GPIO_WritePin(TP_CS_GPIO_Port, TP_CS_Pin, GPIO_PIN_SET);
+    *y = ((uint16_t)rx[1] << 8 | rx[2]) >> 3;
+}
+
 static void LCD_SetWindow(uint16_t xs, uint16_t ys, uint16_t xe, uint16_t ye)
 {
     LCD_WriteReg(0x2A);

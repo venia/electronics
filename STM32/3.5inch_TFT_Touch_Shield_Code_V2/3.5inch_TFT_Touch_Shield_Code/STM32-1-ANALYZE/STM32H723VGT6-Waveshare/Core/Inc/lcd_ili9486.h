@@ -14,5 +14,7 @@
 
 void LCD_Init(void);
 void LCD_FillScreen(uint16_t color);
+void LCD_ReadID(uint8_t id[3]);
+void TP_ReadRaw(uint16_t *x, uint16_t *y);
 
 #endif /* LCD_ILI9486_H */
