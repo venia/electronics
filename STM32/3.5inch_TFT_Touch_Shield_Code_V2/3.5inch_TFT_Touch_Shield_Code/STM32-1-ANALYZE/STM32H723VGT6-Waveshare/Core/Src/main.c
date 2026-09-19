@@ -108,19 +108,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    /* Тач временно отключён на время теста экрана (см. PRIZMA-DOSTOVERNOSTI.md) —
+     * TP_ReadRaw() и LCD_FillScreen() делят одну физическую шину SCLK/MOSI (только CS разный),
+     * не хотим добавлять лишнюю непроверенную переменную в тест заливки. Раскомментировать,
+     * когда вернёмся к диагностике тача.
     TP_ReadRaw((uint16_t *)&tp_x, (uint16_t *)&tp_y);
     HAL_Delay(100);
+    */
 
-    /* Заливка цветом временно отключена на время диагностики тача/чтения ID —
-     * экран пока не инициализируется корректно, лишние HAL_Delay(1000) только
-     * замедлят наблюдение за tp_x/tp_y. Раскомментировать, когда вернёмся к тесту экрана.
     LCD_FillScreen(COLOR_RED);
     HAL_Delay(1000);
     LCD_FillScreen(COLOR_GREEN);
     HAL_Delay(1000);
     LCD_FillScreen(COLOR_BLUE);
     HAL_Delay(1000);
-    */
   }
   /* USER CODE END 3 */
 }
@@ -206,7 +207,7 @@ static void MX_SPI2_Init(void)
   hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; /* временно снижено для теста чтения ID (0xD3) */
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32; /* рабочая скорость; _256 было только для диагностики чтения ID (0xD3), теперь возвращено */
   hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;

@@ -150,20 +150,26 @@ static void LCD_SetWindow(uint16_t xs, uint16_t ys, uint16_t xe, uint16_t ye)
 
 void LCD_FillScreen(uint16_t color)
 {
-    static uint8_t line[LCD_WIDTH * 2];
-    for (uint16_t i = 0; i < LCD_WIDTH; i++)
-    {
-        line[i * 2]     = (uint8_t)(color >> 8);
-        line[i * 2 + 1] = (uint8_t)(color & 0xFF);
-    }
+    /* Байт-за-байтом, как в обоих проверенных референсах (Arduino LCD_Write_AllData,
+     * STM32F103 LCD_Write_AllData поверх SPI4W_Write_Byte) — CS держим низко на весь
+     * кадр, но НЕ гоним все 960 байт строки одним HAL_SPI_Transmit(), в отличие от
+     * прошлой версии. У обоих референсов между байтами есть небольшая программная
+     * пауза (F103-версия явно ждёт флаг BSY и вычитывает SPI1->DR после каждого байта) —
+     * у сдвиговых регистров/счётчика (74HC4094 x2 + 74HC4040, см. PRIZMA-DOSTOVERNOSTI.md)
+     * такой зазор мог быть, наоборот, обязательным условием корректной защёлки, а не просто
+     * следствием более медленного железа референсов. */
+    const uint8_t hi = (uint8_t)(color >> 8);
+    const uint8_t lo = (uint8_t)(color & 0xFF);
+    const uint32_t total_pixels = (uint32_t)LCD_WIDTH * (uint32_t)LCD_HEIGHT;
 
     LCD_SetWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
 
     HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET);
     LCD_CS_Low();
-    for (uint16_t row = 0; row < LCD_HEIGHT; row++)
+    for (uint32_t i = 0; i < total_pixels; i++)
     {
-        HAL_SPI_Transmit(&hspi2, line, sizeof(line), HAL_MAX_DELAY);
+        HAL_SPI_Transmit(&hspi2, (uint8_t *)&hi, 1, HAL_MAX_DELAY);
+        HAL_SPI_Transmit(&hspi2, (uint8_t *)&lo, 1, HAL_MAX_DELAY);
     }
     LCD_CS_High();
 }

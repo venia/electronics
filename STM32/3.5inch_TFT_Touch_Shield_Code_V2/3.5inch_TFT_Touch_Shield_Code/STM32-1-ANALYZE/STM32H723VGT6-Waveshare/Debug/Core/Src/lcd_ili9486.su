@@ -8,4 +8,4 @@
 ../Core/Src/lcd_ili9486.c:95:6:LCD_ReadID	40	static
 ../Core/Src/lcd_ili9486.c:118:6:TP_ReadRaw	32	static
 ../Core/Src/lcd_ili9486.c:138:13:LCD_SetWindow	24	static
-../Core/Src/lcd_ili9486.c:151:6:LCD_FillScreen	24	static
+../Core/Src/lcd_ili9486.c:151:6:LCD_FillScreen	32	static
