@@ -2,7 +2,18 @@
 
 extern SPI_HandleTypeDef hspi2;
 
-static void LCD_CS_Low(void)  { HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET); }
+/* Захват логическим анализатором (PRIZMA-DOSTOVERNOSTI.md §6.5, реестр №32) показал: на STM32
+ * подряд идущие SPI-передачи без паузы между ними (CS поднялся и тут же снова опустился) дают
+ * один лишний паразитный такт SCLK перед настоящими битами — на передаче сразу после HAL_Delay
+ * его нет. Совпадает с задокументированным поведением STM32 SPI при программном GPIO-CS и частых
+ * передачах подряд (errata-класс ES0392, форум ST Community). Короткая пауза перед повторным
+ * выбором чипа убирает именно те условия (отсутствие паузы), при которых он появляется. */
+static void LCD_CS_SettleDelay(void)
+{
+    for (volatile uint32_t i = 0; i < 2000; i++) { __NOP(); }
+}
+
+static void LCD_CS_Low(void)  { LCD_CS_SettleDelay(); HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET); }
 static void LCD_CS_High(void) { HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET); }
 
 static void LCD_WriteReg(uint8_t reg)
